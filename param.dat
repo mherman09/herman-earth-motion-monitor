@@ -1,0 +1,31 @@
+# length of record to download
+WINDOW_SECONDS=3600
+
+# start time (leave blank to download current seismograms)
+# CALENDAR_TIME_START=2010-09-03T16:20:00
+
+# list of seismic stations (STNM|NET|LOC)
+# global stations
+*station_start*
+BAK|CI|--
+MBWA|IU|00
+ULN|IU|00
+TRIS|IU|00
+SPA|IU|00
+SSPA|IU|00
+SNZO|IU|00
+PMG|IU|00
+HNR|IU|00
+TATO|IU|00
+PET|IU|00
+COLA|IU|00
+ANMO|IU|00
+SAML|IU|00
+LCO|IU|00
+GRFO|IU|00
+TSUM|IU|00
+*station_end*
+
+# bandpass filter corner frequencies (hz)
+HP_FILTER_CORNER_FREQ=0.005
+LP_FILTER_CORNER_FREQ=0.0625
