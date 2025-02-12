@@ -100,8 +100,10 @@ PROJ=-JX${WID}i/${HGT}i
 LIMS=-R0/$WINDOW_MINUTES/0/1
 
 # Plot timing of significant earthquakes
-MINSIG=500
-curl "https://earthquake.usgs.gov/fdsnws/event/1/query?starttime=${CALENDAR_TIME_START}&endtime=${CALENDAR_TIME_END}&minsig=${MINSIG}&format=csv" > query.csv
+MINSIG=400
+COMCAT_URL="https://earthquake.usgs.gov/fdsnws/event/1/query?starttime=${CALENDAR_TIME_START}&endtime=${CALENDAR_TIME_END}&minsig=${MINSIG}&format=csv"
+echo "$COMCAT_URL"
+curl "$COMCAT_URL" > query.csv
 awk -F, '{if(NR>1){print $1,$2,$3,$4,$5}}' query.csv > sig_eq.tmp
 awk '{print $5}' sig_eq.tmp > mag.tmp
 awk -F"." '{print $1}' sig_eq.tmp | xargs date -ju -f "%Y-%m-%dT%H:%M:%S" "+%s" |\
@@ -109,16 +111,18 @@ awk -F"." '{print $1}' sig_eq.tmp | xargs date -ju -f "%Y-%m-%dT%H:%M:%S" "+%s" 
 paste time.tmp mag.tmp |\
     awk 'BEGIN{n='$N'-2.5}{
         t = $1/60
-        if ($2>=8) {print "> -W2p,red@10";print t,0;print t,1}
-        else if ($2>=7) {print "> -W1p,red@20";print t,0;print t,1}
-        else if ($2>=6) {print "> -W1p,orange@20";print t,0;print t,1}
-        else {print "> -W1p,yellow@25";print t,0;print t,1}
+        if ($2>=8) {print "> -W3p,red@10";print t,0;print t,1}
+        else if ($2>=7) {print "> -W2p,red@20";print t,0;print t,1}
+        else if ($2>=6) {print "> -W1p,red@30";print t,0;print t,1}
+        else {print "> -W0.5p,red@50";print t,0;print t,1}
     }' |\
     gmt psxy $PROJ $LIMS -K -O >> $PSFILE
 
 
 # Plot map frame
+LIMS=-R-$WINDOW_MINUTES/0/0/1
 gmt psbasemap $PROJ $LIMS -Bxa5+l"Time (Minutes)" -BS -K -O >> $PSFILE
+echo $CALENDAR_TIME_END | gmt pstext $PROJ $LIMS -F+f8,2+cBR -D0/-0.45i -N -K -O >> $PSFILE
 # gmt psbasemap $PROJ $LIMS -Bf -K -O >> $PSFILE
 
 
