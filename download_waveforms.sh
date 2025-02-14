@@ -4,7 +4,8 @@
 #####
 #   INITIALIZE LOG FILE
 #####
-LOG_FILE=$0.log
+PWD=`pwd`
+LOG_FILE=${PWD}/$0.log
 date "+%Y-%m-%dT%H:%M:%S" > $LOG_FILE
 echo starting $0 >> $LOG_FILE
 
@@ -95,8 +96,8 @@ do
     STNM=`echo $STA_INFO | awk -F"|" '{print $1}'`
     NET=`echo $STA_INFO | awk -F"|" '{print $2}'`
     LOC=`echo $STA_INFO | awk -F"|" '{print $3}'`
-    echo $STNM $NET $LOC
     CHA=BHZ
+    echo downloading $STNM $NET $LOC $CHA
     QUERY_STRING="query?net=$NET"
     QUERY_STRING="${QUERY_STRING}&sta=$STNM"
     QUERY_STRING="${QUERY_STRING}&loc=$LOC"
@@ -109,12 +110,12 @@ do
     echo $FDSN_QUERY_STRING >> $LOG_FILE
 
     # Download from IRIS
-    curl "${SACPZ_QUERY_STRING}" > ./SAC/PZRESP.$NET.$STNM.$LOC.$CHA
-    curl "${FDSN_QUERY_STRING}" > ./SAC/sac.zip
+    curl "${SACPZ_QUERY_STRING}" > ./SAC/PZRESP.$NET.$STNM.$LOC.$CHA 2>> $LOG_FILE
+    curl "${FDSN_QUERY_STRING}" > ./SAC/sac.zip 2>> $LOG_FILE
 
     # Unzip SAC file
     cd SAC
-    test -f sac.zip && unzip sac.zip
+    test -f sac.zip && unzip sac.zip >> $LOG_FILE
     cd ..
 done
 

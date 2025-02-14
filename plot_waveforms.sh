@@ -117,6 +117,7 @@ paste time.tmp mag.tmp |\
         else {print "> -W0.5p,red@50";print t,0;print t,1}
     }' |\
     gmt psxy $PROJ $LIMS -K -O >> $PSFILE
+rm sig_eq.tmp mag.tmp time.tmp
 
 
 # Plot map frame

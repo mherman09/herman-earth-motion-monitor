@@ -2,8 +2,15 @@
 
 # Following MECH.NZ/PROTO.CWB/CWBDOEVT (Robert Herrmann's regional moment tensor tools)
 
-LOG_FILE=$0.log
-echo starting $0 > $LOG_FILE
+#####
+#   INITIALIZE LOG FILE
+#####
+PWD=`pwd`
+LOG_FILE=${PWD}/$0.log
+date "+%Y-%m-%dT%H:%M:%S" > $LOG_FILE
+echo starting $0 >> $LOG_FILE
+
+
 
 #####
 #   PROCESS WAVEFORMS
@@ -23,7 +30,7 @@ test -d SAC && cd SAC || exit 1
 # Process each trace
 for TRACE in *.SAC
 do
-    echo working on trace $TRACE
+    echo processing trace $TRACE
 
     # Extract station and time series information from SAC file header
     KSTNM=`saclhdr -KSTNM $TRACE`                  # station name
@@ -54,7 +61,7 @@ do
     # deconvolve to ground velocity in meters per second and bandpass filter using parameters from param.dat
     HPF=`echo $HP_FILTER_CORNER_FREQ 0.003 | awk '{if($1<$2){print $2}else{print $1}}'`
     LPF=`echo $LP_FILTER_CORNER_FREQ $FHL  | awk '{if($1>$2){print $2}else{print $1}}'`
-gsac << EOF
+gsac >> $LOG_FILE << EOF
 r $TRACE
 rtr
 transfer from polezero subtype PZRESP.${KNETWK}.${KSTNM}.${LOC}.${KCMPNM}  TO VEL FREQLIMITS 0.002 0.003 ${FHL} ${FHH}
@@ -65,7 +72,7 @@ quit
 EOF
 
     # write sac file to text file
-sac << EOF
+sac << EOF >> $LOG_FILE
 r ${KSTNM}.${KCMPNM}.${NET}.${LOC}.sac
 w ALPHA ${KSTNM}.${KCMPNM}.${NET}.${LOC}.dat
 quit
@@ -74,4 +81,7 @@ EOF
 
 done
 
+
+
+echo finished $0 >> $LOG_FILE
 

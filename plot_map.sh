@@ -4,7 +4,7 @@ gmt set PS_MEDIA 100ix100i
 
 PSFILE=map.ps
 
-PROJ=-JN160/8i
+PROJ=-JN160/10i
 LIMS=-Rg
 
 gmt psxy -T -K > $PSFILE
