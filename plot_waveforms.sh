@@ -1,6 +1,24 @@
 #!/bin/bash
 
 
+set -e
+
+# Determine date version
+DATE_VERSION=`date --version > /dev/null 2>&1 && echo "gnu-date" || echo "bsd-date"`
+
+# if [ "$DATE_VERSION" == "bsd-date" ]
+# then
+#     echo Using BSD date >> $LOG_FILE
+# elif [ "$DATE_VERSION" == "gnu-date" ]
+# then
+#     echo Using GNU date >> $LOG_FILE
+# else
+#     echo Could not figure out which date version to use...exiting 1>&2
+#     exit 1
+# fi
+
+
+
 #####
 #   PLOT TIME SERIES
 #####
@@ -56,7 +74,16 @@ do
     NZMIN=`saclhdr -NZMIN $TRACE`
     NZSEC=`saclhdr -NZSEC $TRACE`
     NZDATE="${NZYEAR}-${NZJDAY}T${NZHOUR}:${NZMIN}:${NZSEC}"
-    EPOCH_TIME_TRACE_START=`date -ju -f "%Y-%jT%H:%M:%S" "$NZDATE" "+%s"`
+    if [ "$DATE_VERSION" == "bsd-date" ]
+    then
+        EPOCH_TIME_TRACE_START=`date -ju -f "%Y-%jT%H:%M:%S" "$NZDATE" "+%s"`
+    elif [ "$DATE_VERSION" == "gnu-date" ]
+    then
+        EPOCH_TIME_TRACE_START=`date -u -d "$NZDATE" "+%s"`
+    else
+        echo Could not figure out which date version to use...exiting 1>&2
+        exit 1
+    fi
 
     # Calculate time shift
     DT=`echo $EPOCH_TIME_START $EPOCH_TIME_TRACE_START | awk '{print $2-$1}'`
@@ -106,8 +133,19 @@ echo "$COMCAT_URL"
 curl "$COMCAT_URL" > query.csv
 awk -F, '{if(NR>1){print $1,$2,$3,$4,$5}}' query.csv > sig_eq.tmp
 awk '{print $5}' sig_eq.tmp > mag.tmp
-awk -F"." '{print $1}' sig_eq.tmp | xargs date -ju -f "%Y-%m-%dT%H:%M:%S" "+%s" |\
-    awk '{print $1-'$EPOCH_TIME_START'}' > time.tmp
+if [ "$DATE_VERSION" == "bsd-date" ]
+then
+    awk -F"." '{print $1}' sig_eq.tmp | xargs date -ju -f "%Y-%m-%dT%H:%M:%S" "+%s" |\
+        awk '{print $1-'$EPOCH_TIME_START'}' > time.tmp
+elif [ "$DATE_VERSION" == "gnu-date" ]
+then
+    awk -F"." '{print $1}' sig_eq.tmp | xargs date -u -d "+%s" |\
+        awk '{print $1-'$EPOCH_TIME_START'}' > time.tmp
+else
+    echo Could not figure out which date version to use...exiting 1>&2
+    exit 1
+fi
+
 paste time.tmp mag.tmp |\
     awk 'BEGIN{n='$N'-2.5}{
         t = $1/60
