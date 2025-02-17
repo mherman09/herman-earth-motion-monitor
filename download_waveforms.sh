@@ -72,7 +72,7 @@ if [ "$DATE_VERSION" == "bsd-date" ]
 then
     CALENDAR_TIME_END=`date -u -r ${EPOCH_TIME_END} "+%Y-%m-%dT%H:%M:%S"`
     CALENDAR_TIME_START=`date -u -r ${EPOCH_TIME_START} "+%Y-%m-%dT%H:%M:%S"`
-elif [ "$DATE_VERSION" == "bsd-date" ]
+elif [ "$DATE_VERSION" == "gnu-date" ]
 then
     CALENDAR_TIME_END=`date -d "@${EPOCH_TIME_END}" "+%Y-%m-%dT%H:%M:%S"`
     CALENDAR_TIME_START=`date -d "@${EPOCH_TIME_START}" "+%Y-%m-%dT%H:%M:%S"`
