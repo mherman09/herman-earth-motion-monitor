@@ -7,8 +7,8 @@
 #####
 PWD=`pwd`
 LOG_FILE=${PWD}/$0.log
-date "+%Y-%m-%dT%H:%M:%S" > $LOG_FILE
-echo starting $0 >> $LOG_FILE
+echo starting $0 > $LOG_FILE
+echo Current time in local time zone: `date "+%Y-%m-%dT%H:%M:%S"` >> $LOG_FILE
 
 
 

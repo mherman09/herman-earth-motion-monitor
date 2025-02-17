@@ -2,23 +2,36 @@
 
 
 #####
-#   INITIALIZE LOG FILE
+#   INITIALIZE LOG FILE AND DETERMINE WHICH VERSION OF DATE TO USE
 #####
 PWD=`pwd`
 LOG_FILE=${PWD}/$0.log
-date "+%Y-%m-%dT%H:%M:%S" > $LOG_FILE
-echo starting $0 >> $LOG_FILE
+echo starting $0 > $LOG_FILE
 
+
+
+# Note: "date" options are apparently not portable... I think I have corrected for this...
+
+# Determine date version
+DATE_VERSION=`date --version > /dev/null 2>&1 && echo "gnu-date" || echo "bsd-date"`
+
+if [ "$DATE_VERSION" == "bsd-date" ]
+then
+    echo Using BSD date >> $LOG_FILE
+elif [ "$DATE_VERSION" == "gnu-date" ]
+then
+    echo Using GNU date >> $LOG_FILE
+else
+    echo Could not figure out which date version to use...exiting 1>&2
+    exit 1
+fi
+echo Current time in local time zone: `date "+%Y-%m-%dT%H:%M:%S"` >> $LOG_FILE
 
 
 
 #####
 #	GET START AND END TIMES FOR WAVEFORMS
 #####
-
-# Note: "date" options are apparently not portable - BSD and GNU date have different syntaxes :-(
-# These scripts were developed on an iMac using the built-in date (BSD)
-
 
 # Length of record in seconds specified in param.dat file
 WINDOW_SECONDS=`grep "WINDOW_SECONDS" param.dat | awk -F"=" '{print $2}'`
@@ -37,7 +50,16 @@ if [ "$CALENDAR_TIME_START" == "" ]
 then
     EPOCH_TIME_END=`date "+%s"`
 else
-    EPOCH_TIME_END=`date -ju -f "%Y-%m-%dT%H:%M:%S" "$CALENDAR_TIME_START" "+%s" | awk '{print $1+'$WINDOW_SECONDS'}'`
+    if [ "$DATE_VERSION" == "bsd-date" ]
+    then
+        EPOCH_TIME_END=`date -ju -f "%Y-%m-%dT%H:%M:%S" "$CALENDAR_TIME_START" "+%s" | awk '{print $1+'$WINDOW_SECONDS'}'`
+    elif [ "$DATE_VERSION" == "gnu-date" ]
+    then
+        EPOCH_TIME_END=`date -u -d "$CALENDAR_TIME_START" "+%s" | awk '{print $1+'$WINDOW_SECONDS'}'`
+    else
+        echo Could not figure out which date version to use...exiting 1>&2
+        exit 1
+    fi
 fi
 
 
@@ -46,8 +68,18 @@ EPOCH_TIME_START=`echo $EPOCH_TIME_END $WINDOW_SECONDS | awk '{print $1-$2}'`
 
 
 # Convert to calendar date in UTC for requesting download
-CALENDAR_TIME_END=`date -u -r ${EPOCH_TIME_END} "+%Y-%m-%dT%H:%M:%S"`
-CALENDAR_TIME_START=`date -u -r ${EPOCH_TIME_START} "+%Y-%m-%dT%H:%M:%S"`
+if [ "$DATE_VERSION" == "bsd-date" ]
+then
+    CALENDAR_TIME_END=`date -u -r ${EPOCH_TIME_END} "+%Y-%m-%dT%H:%M:%S"`
+    CALENDAR_TIME_START=`date -u -r ${EPOCH_TIME_START} "+%Y-%m-%dT%H:%M:%S"`
+elif [ "$DATE_VERSION" == "bsd-date" ]
+then
+    CALENDAR_TIME_END=`date -d "@${EPOCH_TIME_END}" "+%Y-%m-%dT%H:%M:%S"`
+    CALENDAR_TIME_START=`date -d "@${EPOCH_TIME_START}" "+%Y-%m-%dT%H:%M:%S"`
+else
+    echo Could not figure out which date version to use...exiting 1>&2
+    exit 1
+fi
 
 
 # Save parameters in a log file
