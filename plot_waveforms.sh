@@ -6,16 +6,6 @@ set -e
 # Determine date version
 DATE_VERSION=`date --version > /dev/null 2>&1 && echo "gnu-date" || echo "bsd-date"`
 
-# if [ "$DATE_VERSION" == "bsd-date" ]
-# then
-#     echo Using BSD date >> $LOG_FILE
-# elif [ "$DATE_VERSION" == "gnu-date" ]
-# then
-#     echo Using GNU date >> $LOG_FILE
-# else
-#     echo Could not figure out which date version to use...exiting 1>&2
-#     exit 1
-# fi
 
 
 
@@ -73,13 +63,14 @@ do
     NZHOUR=`saclhdr -NZHOUR $TRACE`
     NZMIN=`saclhdr -NZMIN $TRACE`
     NZSEC=`saclhdr -NZSEC $TRACE`
-    NZDATE="${NZYEAR}-${NZJDAY}T${NZHOUR}:${NZMIN}:${NZSEC}"
     if [ "$DATE_VERSION" == "bsd-date" ]
     then
+        NZDATE="${NZYEAR}-${NZJDAY}T${NZHOUR}:${NZMIN}:${NZSEC}"
         EPOCH_TIME_TRACE_START=`date -ju -f "%Y-%jT%H:%M:%S" "$NZDATE" "+%s"`
     elif [ "$DATE_VERSION" == "gnu-date" ]
     then
-        EPOCH_TIME_TRACE_START=`date -u -d "$NZDATE" "+%s"`
+        DAYOFYEAR=`echo $NZJDAY | awk '{print $1-1}'`
+        EPOCH_TIME_TRACE_START=`date -d "Jan 1, $NZYEAR + $DAYOFYEAR days + $NZHOUR hours + $NZMIN minutes + $NZSEC seconds" "+%s"`
     else
         echo Could not figure out which date version to use...exiting 1>&2
         exit 1
@@ -139,7 +130,7 @@ then
         awk '{print $1-'$EPOCH_TIME_START'}' > time.tmp
 elif [ "$DATE_VERSION" == "gnu-date" ]
 then
-    awk -F"." '{print $1}' sig_eq.tmp | xargs date -u -d "+%s" |\
+    awk -F"." '{print $1}' sig_eq.tmp | xargs -t -I ^ date -d ^ "+%s" |\
         awk '{print $1-'$EPOCH_TIME_START'}' > time.tmp
 else
     echo Could not figure out which date version to use...exiting 1>&2
@@ -161,6 +152,7 @@ rm sig_eq.tmp mag.tmp time.tmp
 # Plot map frame
 LIMS=-R-$WINDOW_MINUTES/0/0/1
 gmt psbasemap $PROJ $LIMS -Bxa5+l"Time (Minutes)" -BS -K -O >> $PSFILE
+echo $CALENDAR_TIME_START | gmt pstext $PROJ $LIMS -F+f8,2+cBL -D0/-0.45i -N -K -O >> $PSFILE
 echo $CALENDAR_TIME_END | gmt pstext $PROJ $LIMS -F+f8,2+cBR -D0/-0.45i -N -K -O >> $PSFILE
 # gmt psbasemap $PROJ $LIMS -Bf -K -O >> $PSFILE
 
