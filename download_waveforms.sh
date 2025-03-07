@@ -74,8 +74,8 @@ then
     CALENDAR_TIME_START=`date -u -r ${EPOCH_TIME_START} "+%Y-%m-%dT%H:%M:%S"`
 elif [ "$DATE_VERSION" == "gnu-date" ]
 then
-    CALENDAR_TIME_END=`date -d "@${EPOCH_TIME_END}" "+%Y-%m-%dT%H:%M:%S"`
-    CALENDAR_TIME_START=`date -d "@${EPOCH_TIME_START}" "+%Y-%m-%dT%H:%M:%S"`
+    CALENDAR_TIME_END=`date -u -d "@${EPOCH_TIME_END}" "+%Y-%m-%dT%H:%M:%S"`
+    CALENDAR_TIME_START=`date -u -d "@${EPOCH_TIME_START}" "+%Y-%m-%dT%H:%M:%S"`
 else
     echo Could not figure out which date version to use...exiting 1>&2
     exit 1
@@ -88,6 +88,13 @@ echo EPOCH_TIME_START=$EPOCH_TIME_START >> $LOG_FILE
 echo EPOCH_TIME_END=$EPOCH_TIME_END >> $LOG_FILE
 echo CALENDAR_TIME_START=$CALENDAR_TIME_START >> $LOG_FILE
 echo CALENDAR_TIME_END=$CALENDAR_TIME_END >> $LOG_FILE
+echo TIME_ZONE=`date "+%Z"` >> $LOG_FILE
+
+echo
+echo
+echo I AM NOT DOWNLOADING CURRENT EARTHQUAKES, I AM DOWNLOADING EARTHQUAKES USING PST INTERPRETED AS UTC
+echo
+echo
 
 
 
@@ -129,7 +136,7 @@ do
     NET=`echo $STA_INFO | awk -F"|" '{print $2}'`
     LOC=`echo $STA_INFO | awk -F"|" '{print $3}'`
     CHA=BHZ
-    echo downloading $STNM $NET $LOC $CHA
+    echo downloading $STNM $NET $LOC $CHA >> $LOG_FILE
     QUERY_STRING="query?net=$NET"
     QUERY_STRING="${QUERY_STRING}&sta=$STNM"
     QUERY_STRING="${QUERY_STRING}&loc=$LOC"
@@ -143,7 +150,7 @@ do
 
     # Download from IRIS
     curl "${SACPZ_QUERY_STRING}" > ./SAC/PZRESP.$NET.$STNM.$LOC.$CHA 2>> $LOG_FILE
-    curl "${FDSN_QUERY_STRING}" > ./SAC/sac.zip 2>> $LOG_FILE
+    curl "${FDSN_QUERY_STRING}" > ./SAC/sac.zip 2>> $LOG_FILE 2>> $LOG_FILE
 
     # Unzip SAC file
     cd SAC

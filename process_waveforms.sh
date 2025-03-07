@@ -30,7 +30,7 @@ test -d SAC && cd SAC || exit 1
 # Process each trace
 for TRACE in *.SAC
 do
-    echo processing trace $TRACE
+    echo processing trace $TRACE >> $LOG_FILE
 
     # Extract station and time series information from SAC file header
     KSTNM=`saclhdr -KSTNM $TRACE`                  # station name
@@ -67,6 +67,7 @@ rtr
 transfer from polezero subtype PZRESP.${KNETWK}.${KSTNM}.${LOC}.${KCMPNM}  TO VEL FREQLIMITS 0.002 0.003 ${FHL} ${FHH}
 hp c $HPF n 3
 lp c $LPF n 3
+taper hanning w 0.02
 w ${KSTNM}.${KCMPNM}.${NET}.${LOC}.sac
 quit
 EOF
