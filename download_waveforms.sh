@@ -76,6 +76,8 @@ elif [ "$DATE_VERSION" == "gnu-date" ]
 then
     CALENDAR_TIME_END=`date -u -d "@${EPOCH_TIME_END}" "+%Y-%m-%dT%H:%M:%S"`
     CALENDAR_TIME_START=`date -u -d "@${EPOCH_TIME_START}" "+%Y-%m-%dT%H:%M:%S"`
+    CALENDAR_TIME_END_LOCAL=`date -d "@${EPOCH_TIME_END}" "+%Y-%m-%dT%H:%M:%S"`
+    CALENDAR_TIME_START_LOCAL=`date -d "@${EPOCH_TIME_START}" "+%Y-%m-%dT%H:%M:%S"`
 else
     echo Could not figure out which date version to use...exiting 1>&2
     exit 1
@@ -88,13 +90,9 @@ echo EPOCH_TIME_START=$EPOCH_TIME_START >> $LOG_FILE
 echo EPOCH_TIME_END=$EPOCH_TIME_END >> $LOG_FILE
 echo CALENDAR_TIME_START=$CALENDAR_TIME_START >> $LOG_FILE
 echo CALENDAR_TIME_END=$CALENDAR_TIME_END >> $LOG_FILE
+echo CALENDAR_TIME_START_LOCAL=$CALENDAR_TIME_START_LOCAL >> $LOG_FILE
+echo CALENDAR_TIME_END_LOCAL=$CALENDAR_TIME_END_LOCAL >> $LOG_FILE
 echo TIME_ZONE=`date "+%Z"` >> $LOG_FILE
-
-echo
-echo
-echo I AM NOT DOWNLOADING CURRENT EARTHQUAKES, I AM DOWNLOADING EARTHQUAKES USING PST INTERPRETED AS UTC
-echo
-echo
 
 
 

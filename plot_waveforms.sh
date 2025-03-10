@@ -46,9 +46,11 @@ gmt psxy -T -K -Y50i > $PSFILE
 
 
 # Get times of requested window from waveform download log file
-EPOCH_TIME_START=`grep "EPOCH_TIME_START" download_waveforms.sh.log | awk -F"=" '{print $2}'`
-CALENDAR_TIME_START=`grep "CALENDAR_TIME_START" download_waveforms.sh.log | awk -F"=" '{print $2}'`
-CALENDAR_TIME_END=`grep "CALENDAR_TIME_END" download_waveforms.sh.log | awk -F"=" '{print $2}'`
+EPOCH_TIME_START=`grep "EPOCH_TIME_START=" download_waveforms.sh.log | awk -F"=" '{print $2}'`
+CALENDAR_TIME_START=`grep "CALENDAR_TIME_START=" download_waveforms.sh.log | awk -F"=" '{print $2}'`
+CALENDAR_TIME_END=`grep "CALENDAR_TIME_END=" download_waveforms.sh.log | awk -F"=" '{print $2}'`
+CALENDAR_TIME_START_LOCAL=`grep "CALENDAR_TIME_START_LOCAL=" download_waveforms.sh.log | awk -F"=" '{print $2}'`
+CALENDAR_TIME_END_LOCAL=`grep "CALENDAR_TIME_END_LOCAL=" download_waveforms.sh.log | awk -F"=" '{print $2}'`
 TIME_ZONE=`grep "TIME_ZONE=" download_waveforms.sh.log | awk -F= '{print $2}'`
 
 # Plot all waveforms, starting with California stations
@@ -178,10 +180,10 @@ fi
 # Plot map frame
 LIMS=-R-$WINDOW_MINUTES/0/0/1
 gmt psbasemap $PROJ $LIMS -Bxa5+l"Time (Minutes)" -BS -K -O >> $PSFILE
-echo $CALENDAR_TIME_START $TIME_ZONE |\
+echo $CALENDAR_TIME_START_LOCAL $TIME_ZONE |\
     sed -e "s/T/ /" |\
     gmt pstext $PROJ $LIMS -F+f8,2+cBL -D0/-0.45i -N -K -O >> $PSFILE
-echo $CALENDAR_TIME_END $TIME_ZONE |\
+echo $CALENDAR_TIME_END_LOCAL $TIME_ZONE |\
     sed -e "s/T/ /" |\
     gmt pstext $PROJ $LIMS -F+f8,2+cBR -D0/-0.45i -N -K -O >> $PSFILE
 # gmt psbasemap -JX${TOTAL_WID}i/${TOTAL_HGT}i $LIMS -Bf -K -O >> $PSFILE
