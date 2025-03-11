@@ -154,8 +154,9 @@ do
 
     # Unzip SAC file
     cd SAC
-    test -f sac.zip && unzip sac.zip >> $LOG_FILE
+    test -f sac.zip && unzip sac.zip >> $LOG_FILE 2>&1
     cd ..
+    echo >> $LOG_FILE
 done
 
 

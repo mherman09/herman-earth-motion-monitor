@@ -1,8 +1,6 @@
 #!/bin/bash
 
 
-set -e
-
 # Determine date version
 DATE_VERSION=`date --version > /dev/null 2>&1 && echo "gnu-date" || echo "bsd-date"`
 
@@ -24,7 +22,7 @@ echo Current time in local time zone: `date "+%Y-%m-%dT%H:%M:%S"` >> $LOG_FILE
 #   PLOT TIME SERIES
 #####
 
-gmt set PS_MEDIA 100ix100i
+gmt set PS_MEDIA 16.4ix9.75i
 
 # Postscript file name
 PSFILE=waveforms.ps
@@ -42,7 +40,7 @@ PROJ=-JX${TRACE_WID}i/${TRACE_HGT}i
 
 
 # Initialize figure
-gmt psxy -T -K -Y50i > $PSFILE
+gmt psxy -T -K -X0.20i -Y9.15i -P > $PSFILE
 
 
 # Get times of requested window from waveform download log file
@@ -155,7 +153,7 @@ then
             awk '{print $1-'$EPOCH_TIME_START'}' > time.tmp
     elif [ "$DATE_VERSION" == "gnu-date" ]
     then
-        awk -F"." '{print $1}' sig_eq.tmp | xargs -I ^ date -d ^ "+%s" |\
+        awk -F"." '{print $1}' sig_eq.tmp | xargs -I ^ date -u -d ^ "+%s" |\
             awk '{print $1-'$EPOCH_TIME_START'}' > time.tmp
     else
         echo Could not figure out which date version to use...exiting 1>&2
@@ -192,6 +190,7 @@ echo $CALENDAR_TIME_END_LOCAL $TIME_ZONE |\
 
 gmt psxy -T -O >> $PSFILE
 
-gmt psconvert $PSFILE -Tg -A
+gmt psconvert $PSFILE -Tg
+gmt psconvert $PSFILE -Tf
 rm $PSFILE
 rm gmt.history gmt.conf
