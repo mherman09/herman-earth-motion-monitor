@@ -145,7 +145,8 @@ awk '{
     la = $2
     dp = $4
     mg = $5
-    printf("%.1f %.1f %s    %-8.2f%-8.2f %-8.2f%-7.1f\n"), 0,1-NR*0.45,ot,la,lo,dp,mg
+    printf("%.1f  %.1f  %-11s\ %-8.2f%-8.2f %-8.2f%-7.1f\n"), 0,1-NR*0.45,ot,la,lo,dp,mg
+    printf("%.1f  %.1f  %-11s\ %-8.2f%-8.2f %-8.2f%-7.1f\n"), 0,1-NR*0.45,ot,la,lo,dp,mg > "/dev/stderr"
 }' ../sig_eq.tmp |\
     gmt pstext -JX1i -R0/1/0/1 -F+f20,8+jLT $SHFT -N -K -O >> $PSFILE
 
