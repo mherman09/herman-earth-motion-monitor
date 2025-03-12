@@ -13,6 +13,6 @@ do
     echo
     echo
     ./do_all.sh || { echo $0: exiting with error; exit 1; }
-    sleep $SLEEP
+    sleep ${SLEEP}s
     echo
 done

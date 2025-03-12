@@ -99,20 +99,23 @@ do
     # Significant earthquakes
     if [ "$USGS_EQ_QUERY_ERROR" == "N" ]
     then
-        # echo $LON0 $LAT0
+        echo Earthquakes plotted on map centered at LON0=$LON0 LAT0=$LAT0
         gmt makecpt -T0/100/10 -Cplasma -I -D > dep.cpt
         awk '{print '$LON0','$LAT0',$3,$2}' ../sig_eq.tmp |\
             lola2distaz -f stdin | awk '{print $1}' > dist.tmp
         paste dist.tmp ../sig_eq.tmp |\
-            awk '{if($1/111.19<=90){print $4,$3,$5,$6*$6*$6*0.0016}}' |\
+            awk '{
+                if ($1/111.19<=90) {
+                    print $4,$3,$5,$6*$6*$6*0.0016
+                    printf("%10.3f%10.3f%8.2f%7.1f\n"),$4,$3,$5,$6 > "/dev/stderr"
+                }
+            }END{print "" > "/dev/stderr"}' |\
             gmt psxy $PROJ $LIMS -Sci -W1p -Cdep.cpt $SHFT -N -K -O >> $PSFILE
-        # paste dist.tmp ../sig_eq.tmp |\
-        #     awk '{if($1/111.19<=90){print $4,$3,$5,$6*$6*$6*0.0016}}'
     fi
 done
 
 # Magnitude Legend
-echo 0 1 Magnitude | gmt pstext -JX1i -R0/1/0/1 -F+f28,1+jCT -Xa14.0i -Ya28.0i -D0.15i/0 -N -K -O >> $PSFILE
+echo 0 1 Magnitude | gmt pstext -JX1i -R0/1/0/1 -F+f28,1+jCT -Xa14.5i -Ya28.0i -D0.15i/0 -N -K -O >> $PSFILE
 cat > seis_scale.tmp << EOF
 2.20 9.0
 1.38 8.0
@@ -121,15 +124,15 @@ cat > seis_scale.tmp << EOF
 0.14 5.0
 0.00 4.0
 EOF
-SHFT="-Xa14.0i -Ya25.6i"
+SHFT="-Xa14.5i -Ya25.6i"
 awk '{print 0.0,$1,$2^3*0.0016}' seis_scale.tmp |\
     gmt psxy -JX1i -R0/1/0/1 -W1p -G235 -Sci $SHFT -N -K -O >> $PSFILE
 awk '{print 0.0+$2^3*0.0016/2,$1,11+($2-4)*1.5,$2}' seis_scale.tmp |\
     gmt pstext -J -R -F+f+jLM -D0.05i/0 $SHFT -N -K -O >> $PSFILE
 
 # Depth Legend
-echo 0 1 Depth \(km\) | gmt pstext -JX1i -R0/1/0/1 -F+f28,1+jCT -Xa17.0i -Ya28.0i -D0.15i/0 -N -K -O >> $PSFILE
-gmt psscale -Dx17.0i/25.5i+w-2.8i/0.25i -Cdep.cpt -Ba20 -K -O --FONT_ANNOT=20 >> $PSFILE
+echo 0 1 Depth \(km\) | gmt pstext -JX1i -R0/1/0/1 -F+f28,1+jCT -Xa17.5i -Ya28.0i -D0.15i/0 -N -K -O >> $PSFILE
+gmt psscale -Dx17.5i/25.5i+w-2.8i/0.25i -Cdep.cpt -Ba20 -K -O --FONT_ANNOT=20 >> $PSFILE
 
 # Earthquake list
 SHFT="-Xa13.0i -Ya17.5i"
