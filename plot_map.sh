@@ -73,45 +73,45 @@ do
     # Map frame
     gmt psbasemap $PROJ $LIMS -Bxg30 -Byg30 $SHFT -K -O --MAP_FRAME_PEN=0.5p --MAP_GRID_PEN=0.25p,105@40 >> $PSFILE
 
-    # # Station locations
-    # for TRACE in ../SAC/*.CI.*.sac ../SAC/*.IU.*.sac
-    # do
+    # Station locations
+    for TRACE in ../SAC/*.CI.*.sac ../SAC/*.IU.*.sac
+    do
 
-    #     echo getting station info for $TRACE >> $LOG_FILE
+        echo getting station info for $TRACE >> $LOG_FILE
 
-    #     # Get directory name and ASCII seismogram file name
-    #     DIR=`dirname $TRACE`
-    #     ASCII_FILE=`basename $TRACE .sac`.dat
+        # Get directory name and ASCII seismogram file name
+        DIR=`dirname $TRACE`
+        ASCII_FILE=`basename $TRACE .sac`.dat
 
-    #     # Plot station name
-    #     KSTNM=`saclhdr -KSTNM $TRACE`
-    #     STLO=`saclhdr -STLO $TRACE`
-    #     STLA=`saclhdr -STLA $TRACE`
-    #     DIST=`lola2distaz -c $LON0 $LAT0 $STLO $STLA | awk '{print $1/111.19}'`
-    #     PLOT=`echo $DIST | awk '{if($1<=90){print "Y"}else{print "N"}}'`
-    #     if [ $PLOT == "Y" ]
-    #     then
-    #         echo $STLO $STLA | gmt psxy $PROJ $LIMS -Si0.1i -W1p -Gred -N $SHFT -K -O >> $PSFILE
-    #         echo $STLO $STLA $KSTNM | gmt pstext $PROJ $LIMS -F+f7,1+jCB -D0/0.07i -N $SHFT -K -O >> $PSFILE
-    #     fi
-    # done
+        # Plot station name
+        KSTNM=`saclhdr -KSTNM $TRACE`
+        STLO=`saclhdr -STLO $TRACE`
+        STLA=`saclhdr -STLA $TRACE`
+        DIST=`lola2distaz -c $LON0 $LAT0 $STLO $STLA | awk '{print $1/111.19}'`
+        PLOT=`echo $DIST | awk '{if($1<=90){print "Y"}else{print "N"}}'`
+        if [ $PLOT == "Y" ]
+        then
+            echo $STLO $STLA | gmt psxy $PROJ $LIMS -Si0.1i -W1p -Gred -N $SHFT -K -O >> $PSFILE
+            echo $STLO $STLA $KSTNM | gmt pstext $PROJ $LIMS -F+f7,1+jCB -D0/0.07i -N $SHFT -K -O >> $PSFILE
+        fi
+    done
 
-    # # Significant earthquakes
-    # if [ "$USGS_EQ_QUERY_ERROR" == "N" ]
-    # then
-    #     echo Earthquakes plotted on map centered at LON0=$LON0 LAT0=$LAT0
-    #     gmt makecpt -T0/100/10 -Cplasma -I -D > dep.cpt
-    #     awk '{print '$LON0','$LAT0',$3,$2}' ../sig_eq.tmp |\
-    #         lola2distaz -f stdin | awk '{print $1}' > dist.tmp
-    #     paste dist.tmp ../sig_eq.tmp |\
-    #         awk '{
-    #             if ($1/111.19<=90) {
-    #                 print $4,$3,$5,$6*$6*$6*0.0016
-    #                 printf("%10.3f%10.3f%8.2f%7.1f\n"),$4,$3,$5,$6 > "/dev/stderr"
-    #             }
-    #         }END{print "" > "/dev/stderr"}' |\
-    #         gmt psxy $PROJ $LIMS -Sci -W1p -Cdep.cpt $SHFT -N -K -O >> $PSFILE
-    # fi
+    # Significant earthquakes
+    if [ "$USGS_EQ_QUERY_ERROR" == "N" ]
+    then
+        echo Earthquakes plotted on map centered at LON0=$LON0 LAT0=$LAT0
+        gmt makecpt -T0/100/10 -Cplasma -I -D > dep.cpt
+        awk '{print '$LON0','$LAT0',$3,$2}' ../sig_eq.tmp |\
+            lola2distaz -f stdin | awk '{print $1}' > dist.tmp
+        paste dist.tmp ../sig_eq.tmp |\
+            awk '{
+                if ($1/111.19<=90) {
+                    print $4,$3,$5,$6*$6*$6*0.0016
+                    printf("%10.3f%10.3f%8.2f%7.1f\n"),$4,$3,$5,$6 > "/dev/stderr"
+                }
+            }END{print "" > "/dev/stderr"}' |\
+            gmt psxy $PROJ $LIMS -Sci -W1p -Cdep.cpt $SHFT -N -K -O >> $PSFILE
+    fi
 done
 
 # Magnitude Legend
