@@ -1,55 +1,98 @@
 #!/bin/bash
 
+####################################################################################################
+# DOWNLOAD_WAVEFORMS.SH
+#
+# Download seismograms from IRIS using the date and window parameters in file param.dat
+####################################################################################################
+
+
 
 #####
 #   INITIALIZE LOG FILE AND DETERMINE WHICH VERSION OF DATE TO USE
 #####
+
+
+# Script name
+SCRIPT=`basename $0`
+
+
+
+# Date/time function
+function print_time () {
+    date "+%H:%M:%S"
+}
+
+
+
+# Starting message
+echo "$SCRIPT [`print_time`]: starting" | tee $LOG_FILE
+
+
+
+# Log file
 PWD=`pwd`
-LOG_FILE=${PWD}/$0.log
-echo starting $0 > $LOG_FILE
+test -d LOGS || mkdir LOGS
+LOG_FILE=${PWD}/LOGS/$SCRIPT.log
+echo "$SCRIPT [`print_time`]: creating log file LOGS/$SCRIPT.log" | tee -a $LOG_FILE
 
 
-
-# Note: "date" options are apparently not portable... I think I have corrected for this...
 
 # Determine date version
-DATE_VERSION=`date --version > /dev/null 2>&1 && echo "gnu-date" || echo "bsd-date"`
+DATE_VERSION=$(date --version > /dev/null 2>&1 && echo "gnu-date" || echo "bsd-date")
 
 if [ "$DATE_VERSION" == "bsd-date" ]
 then
-    echo Using BSD date >> $LOG_FILE
+    echo "$SCRIPT [`print_time`]: using BSD date" | tee -a $LOG_FILE
 elif [ "$DATE_VERSION" == "gnu-date" ]
 then
-    echo Using GNU date >> $LOG_FILE
+    echo "$SCRIPT [`print_time`]: using GNU date" | tee -a $LOG_FILE
 else
-    echo Could not figure out which date version to use...exiting 1>&2
+    echo "$SCRIPT [ERROR]: could not figure out version of date" 1>&2
     exit 1
 fi
-echo Current time in local time zone: `date "+%Y-%m-%dT%H:%M:%S"` >> $LOG_FILE
+
+
+
+
+
 
 
 
 #####
-#	GET START AND END TIMES FOR WAVEFORMS
+#	GET START AND END TIMES FOR WAVEFORMS FROM PARAM.DAT
 #####
+
+
+# Getting info from param.dat
+echo "$SCRIPT [`print_time`]: getting waveform timing from param.dat" | tee -a $LOG_FILE
+
+
 
 # Length of record in seconds specified in param.dat file
-WINDOW_SECONDS=`grep "WINDOW_SECONDS" param.dat | awk -F"=" '{print $2}'`
+WINDOW_SECONDS=`grep "^WINDOW_SECONDS=" param.dat | tail -1 | awk -F"=" '{print $2}'`
+echo "$SCRIPT [`print_time`]: getting $WINDOW_SECONDS seconds of data" | tee -a $LOG_FILE
+
 
 
 # If starting time is specified in the param.dat file, use it, otherwise get records up to present
-CALENDAR_TIME_START=`grep "CALENDAR_TIME_START=" param.dat |\
+CALENDAR_TIME_START=`grep "^CALENDAR_TIME_START=" param.dat |\
+    tail -1 |\
     awk -F"#" '{print $1}' |\
     sed -e "/^$/d" |\
     awk -F"=" '{print $2}' |\
     sed -e "/^$/d"`
 
 
+
 # End time is either calculated relative to time set in param.dat or the current time
 if [ "$CALENDAR_TIME_START" == "" ]
 then
+    echo "$SCRIPT [`print_time`]: CALENDAR_TIME_START not specified in param.dat" | tee -a $LOG_FILE
+    echo "$SCRIPT [`print_time`]: getting time series up to present" | tee -a $LOG_FILE
     EPOCH_TIME_END=`date "+%s"`
 else
+    echo "$SCRIPT [`print_time`]: getting time series starting at UTC $CALENDAR_TIME_START" | tee -a $LOG_FILE
     if [ "$DATE_VERSION" == "bsd-date" ]
     then
         EPOCH_TIME_END=`date -ju -f "%Y-%m-%dT%H:%M:%S" "$CALENDAR_TIME_START" "+%s" | awk '{print $1+'$WINDOW_SECONDS'}'`
@@ -57,21 +100,23 @@ else
     then
         EPOCH_TIME_END=`date -u -d "$CALENDAR_TIME_START" "+%s" | awk '{print $1+'$WINDOW_SECONDS'}'`
     else
-        echo Could not figure out which date version to use...exiting 1>&2
+        echo "$SCRIPT [ERROR]: could not figure out version of date" 1>&2
         exit 1
     fi
 fi
+
 
 
 # Start time
 EPOCH_TIME_START=`echo $EPOCH_TIME_END $WINDOW_SECONDS | awk '{print $1-$2}'`
 
 
+
 # Convert to calendar date in UTC for requesting download
 if [ "$DATE_VERSION" == "bsd-date" ]
 then
     CALENDAR_TIME_END=`date -u -r ${EPOCH_TIME_END} "+%Y-%m-%dT%H:%M:%S"`
-    CALENDAR_TIME_START=`date -u -r ${EPOCH_TIME_START} "+%Y-%m-%dT%H:%M:%S"`
+    CALENDAR_TIME_PrepSTART=`date -u -r ${EPOCH_TIME_START} "+%Y-%m-%dT%H:%M:%S"`
     CALENDAR_TIME_END_LOCAL=`date -r "${EPOCH_TIME_END}" "+%Y-%m-%dT%H:%M:%S"`
     CALENDAR_TIME_START_LOCAL=`date -r "${EPOCH_TIME_START}" "+%Y-%m-%dT%H:%M:%S"`
 elif [ "$DATE_VERSION" == "gnu-date" ]
@@ -81,27 +126,43 @@ then
     CALENDAR_TIME_END_LOCAL=`date -d "@${EPOCH_TIME_END}" "+%Y-%m-%dT%H:%M:%S"`
     CALENDAR_TIME_START_LOCAL=`date -d "@${EPOCH_TIME_START}" "+%Y-%m-%dT%H:%M:%S"`
 else
-    echo Could not figure out which date version to use...exiting 1>&2
+    echo "$SCRIPT [ERROR]: could not figure out version of date" 1>&2
     exit 1
 fi
 
 
+
 # Save parameters in a log file
-echo WINDOW_SECONDS=$WINDOW_SECONDS >> $LOG_FILE
-echo EPOCH_TIME_START=$EPOCH_TIME_START >> $LOG_FILE
-echo EPOCH_TIME_END=$EPOCH_TIME_END >> $LOG_FILE
-echo CALENDAR_TIME_START=$CALENDAR_TIME_START >> $LOG_FILE
-echo CALENDAR_TIME_END=$CALENDAR_TIME_END >> $LOG_FILE
-echo CALENDAR_TIME_START_LOCAL=$CALENDAR_TIME_START_LOCAL >> $LOG_FILE
-echo CALENDAR_TIME_END_LOCAL=$CALENDAR_TIME_END_LOCAL >> $LOG_FILE
-echo TIME_ZONE=`date "+%Z"` >> $LOG_FILE
+cat > j << EOF
+WINDOW_SECONDS=$WINDOW_SECONDS
+EPOCH_TIME_START=$EPOCH_TIME_START
+EPOCH_TIME_END=$EPOCH_TIME_END
+CALENDAR_TIME_START=$CALENDAR_TIME_START
+CALENDAR_TIME_END=$CALENDAR_TIME_END
+CALENDAR_TIME_START_LOCAL=$CALENDAR_TIME_START_LOCAL
+CALENDAR_TIME_END_LOCAL=$CALENDAR_TIME_END_LOCAL
+TIME_ZONE_LOCAL=`date "+%Z"`
+EOF
+cat j | tee -a $LOG_FILE
+rm j
+
+
+
 
 
 
 #####
 #	DOWNLOAD WAVEFORMS AND STATION METADATA
 #####
+
+
+# Start download
+echo "$SCRIPT [`print_time`]: preparing waveform download" | tee -a $LOG_FILE
+
+
+
 # Make directory to store waveforms and clean it out
+echo "$SCRIPT [`print_time`]: cleaning SAC/ directory" | tee -a $LOG_FILE
 test -d SAC || mkdir SAC
 cd SAC
 rm *.SAC
@@ -112,7 +173,10 @@ rm sac.zip
 cd ..
 
 
+
 # List of seismic stations from param.dat file
+echo "$SCRIPT [`print_time`]: getting list of stations from param.dat" | tee -a $LOG_FILE
+
 STA_LIST=`awk -F"#" '{print $1}' param.dat |\
     awk '{
         if (/\*station_start\*/) {
@@ -125,18 +189,28 @@ STA_LIST=`awk -F"#" '{print $1}' param.dat |\
             }
         }
     } END{print sta_list}'`
-echo $STA_LIST >> $LOG_FILE
+
+echo $STA_LIST | tee -a $LOG_FILE
+
 
 
 # Download waveforms and station instrument responses into SAC folder
+echo "$SCRIPT [`print_time`]: downloading waveforms from IRIS" | tee -a $LOG_FILE
+echo "$SCRIPT [`print_time`]: saving query URLs in log file" | tee -a $LOG_FILE
+
+
 for STA_INFO in `echo $STA_LIST | sed -e "s/,/ /g"`
 do
-    # Build query string
+
+    echo "$SCRIPT [`print_time`]: working on $STA_INFO" | tee -a $LOG_FILE
+
+    # Parse station info
     STNM=`echo $STA_INFO | awk -F"|" '{print $1}'`
     NET=`echo $STA_INFO | awk -F"|" '{print $2}'`
     LOC=`echo $STA_INFO | awk -F"|" '{print $3}'`
     CHA=BHZ
-    echo downloading $STNM $NET $LOC $CHA >> $LOG_FILE
+
+    # Build query
     QUERY_STRING="query?net=$NET"
     QUERY_STRING="${QUERY_STRING}&sta=$STNM"
     QUERY_STRING="${QUERY_STRING}&loc=$LOC"
@@ -147,6 +221,7 @@ do
     FDSN_QUERY_STRING="https://service.iris.edu/fdsnws/dataselect/1/${QUERY_STRING}&format=sac.zip"
     echo $SACPZ_QUERY_STRING >> $LOG_FILE
     echo $FDSN_QUERY_STRING >> $LOG_FILE
+
 
     # Download from IRIS
     curl "${SACPZ_QUERY_STRING}" > ./SAC/PZRESP.$NET.$STNM.$LOC.$CHA 2>> $LOG_FILE
@@ -160,9 +235,16 @@ do
 done
 
 
+
 # Save downloaded files to log
+if [ -z "$(ls -A SAC/*.SAC 2> /dev/null)" ]
+then
+    echo "$SCRIPT [ERROR]: no downloaded seismograms found in SAC/" 1>&2
+    exit 1
+fi
 ls ./SAC/PZRESP* >> $LOG_FILE
 ls ./SAC/*.SAC >> $LOG_FILE
 
 
-echo finished $0 >> $LOG_FILE
+
+echo "$SCRIPT [`print_time`]: finished" | tee -a $LOG_FILE
