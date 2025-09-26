@@ -28,15 +28,11 @@ function print_time () {
 
 
 
-# Starting message
-echo "$SCRIPT [`print_time`]: starting" | tee $LOG_FILE
-
-
-
 # Log file
 PWD=`pwd`
 test -d LOGS || mkdir LOGS
 LOG_FILE=${PWD}/LOGS/$SCRIPT.log
+echo "$SCRIPT [`print_time`]: starting" | tee $LOG_FILE
 echo "$SCRIPT [`print_time`]: creating log file LOGS/$SCRIPT.log" | tee -a $LOG_FILE
 
 
