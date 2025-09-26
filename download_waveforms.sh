@@ -7,6 +7,8 @@
 ####################################################################################################
 
 
+set -e
+
 
 #####
 #   INITIALIZE LOG FILE AND DETERMINE WHICH VERSION OF DATE TO USE
