@@ -7,7 +7,6 @@
 ####################################################################################################
 
 
-set -e
 
 
 #####
@@ -229,11 +228,14 @@ do
     curl "${SACPZ_QUERY_STRING}" > ./SAC/PZRESP.$NET.$STNM.$LOC.$CHA 2>> $LOG_FILE
     curl "${FDSN_QUERY_STRING}" > ./SAC/sac.zip 2>> $LOG_FILE 2>> $LOG_FILE
 
+
     # Unzip SAC file
     cd SAC
-    test -f sac.zip && unzip sac.zip >> $LOG_FILE 2>&1
+    test -f sac.zip && unzip sac.zip >> $LOG_FILE 2>&1 || echo failed to download/unzip $STNM file
+    test -f sac.zip && rm sac.zip
     cd ..
     echo >> $LOG_FILE
+
 done
 
 
