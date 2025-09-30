@@ -242,11 +242,28 @@ do
             for(i=1;i<=NF;i++){
                 t = ((NR-31)*5+i)*delta + dt
                 v = $i
-                print t,v
+                printf("%12.3f%20.6e\n"), t,v
             }
         }
     }' $DIR/$ASCII_FILE |\
         gmt psxy $PROJ $LIMS -W0.5p,65 -K -O >> $PSFILE
+    STOP=$(echo $TRACE | grep PMG)
+    if [ "$STOP" != "" ]
+    then
+        awk 'BEGIN{dt='$DT'}{
+            if (NR==1) {
+                delta = $1
+            } else if (NR>30) {
+                for(i=1;i<=NF;i++){
+                    t = ((NR-31)*5+i)*delta + dt
+                    v = $i
+                    # printf("%12.3f%20.6e\n"), t,v
+                    print t,v
+                }
+            }
+        }' $DIR/$ASCII_FILE > j
+        # exit
+    fi
 
 
     # Plot station name
@@ -428,3 +445,8 @@ gmt psconvert $PSFILE -Tg -E300 -Qg4
 # Clean up
 rm $PSFILE
 rm gmt.history gmt.conf
+
+
+
+
+echo "$SCRIPT [`print_time`]: finished" | tee -a $LOG_FILE
