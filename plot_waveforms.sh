@@ -185,7 +185,7 @@ CALENDAR_TIME_START=$CALENDAR_TIME_START
 CALENDAR_TIME_END=$CALENDAR_TIME_END
 CALENDAR_TIME_START_LOCAL=$CALENDAR_TIME_START_LOCAL
 CALENDAR_TIME_END_LOCAL=$CALENDAR_TIME_END_LOCAL
-TIME_ZONE_LOCAL=`date "+%Z"`
+TIME_ZONE_LOCAL=$TIME_ZONE_LOCAL
 EOF
 cat j | tee -a $LOG_FILE
 rm j
@@ -246,7 +246,7 @@ do
             }
         }
     }' $DIR/$ASCII_FILE |\
-        gmt psxy $PROJ $LIMS -W0.5p,65 -K -O >> $PSFILE
+        gmt psxy $PROJ $LIMS -W0.5p,65 -K -O --PS_LINE_JOIN=round >> $PSFILE
     STOP=$(echo $TRACE | grep PMG)
     if [ "$STOP" != "" ]
     then
@@ -316,7 +316,7 @@ if [ -z $MINSIG ]
 then
     MINSIG=100
 fi
-echo "$SCRIPT [`print_time`]: minimum significance = $MINSIG from param.dat" | tee -a $LOG_FILE
+echo "$SCRIPT [`print_time`]: minimum significance = $MINSIG" | tee -a $LOG_FILE
 COMCAT_URL="https://earthquake.usgs.gov/fdsnws/event/1/query?starttime=${CALENDAR_TIME_START}&endtime=${CALENDAR_TIME_END}&minsig=${MINSIG}&format=csv"
 echo "$COMCAT_URL" >> $LOG_FILE
 curl "$COMCAT_URL" > query.csv 2>> $LOG_FILE
