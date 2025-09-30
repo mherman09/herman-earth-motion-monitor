@@ -96,6 +96,7 @@ do
     # deconvolve to ground velocity in meters per second and bandpass filter using parameters from param.dat
     HPF=`echo $HP_FILTER_CORNER_FREQ 0.003 | awk '{if($1<$2){print $2}else{print $1}}'`
     LPF=`echo $LP_FILTER_CORNER_FREQ $FHL  | awk '{if($1>$2){print $2}else{print $1}}'`
+    DELTA_NEW=`echo $LPF | awk '{dt=0.5/$1;if(dt>1){dt=1};print dt}'`
 
 gsac >> $LOG_FILE << EOF
 r $TRACE
@@ -103,6 +104,7 @@ rtr
 transfer from polezero subtype PZRESP.${KNETWK}.${KSTNM}.${LOC}.${KCMPNM}  TO VEL FREQLIMITS 0.002 0.003 ${FHL} ${FHH}
 hp c $HPF n 3
 lp c $LPF n 3
+interpolate delta $DELTA_NEW
 taper hanning w 0.02
 w ${KSTNM}.${KCMPNM}.${NET}.${LOC}.sac
 quit
