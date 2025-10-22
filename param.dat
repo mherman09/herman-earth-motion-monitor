@@ -4,7 +4,6 @@ WINDOW_SECONDS=3600
 # start time UTC (leave blank or commented to download seismograms up to current time)
 # CALENDAR_TIME_START=2010-09-03T16:20:00 # 2010 M 7.1 Darfield, New Zealand
 # CALENDAR_TIME_START=2025-07-29T23:20:00 # 2025 M 8.8 Kamchatka
-# CALENDAR_TIME_START=2025-09-30T13:50:00
 
 # list of seismic stations (STNM|NET|LOC)
 # global stations
@@ -13,10 +12,10 @@ BAK|CI|--
 MBWA|IU|00
 ULN|IU|00
 TRIS|IU|00
-SPA|IU|00
+CASY|IU|00
 SSPA|IU|00
 SNZO|IU|00
-PMG|IU|00
+XMAS|IU|00
 HNR|IU|00
 TATO|IU|00
 PET|IU|00
