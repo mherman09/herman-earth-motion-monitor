@@ -180,6 +180,31 @@ do
     # Map frame
     gmt psbasemap $PROJ $LIMS -Bxg30 -Byg30 $SHFT -K -O --MAP_FRAME_PEN=0.5p --MAP_GRID_PEN=0.25p,105@40 >> $PSFILE
 
+    # Grid labels
+    if [ $LAT0 == 0 ]
+    then
+        LON0_MINUS_60=`echo $LON0 | awk '{print $1-60}'`
+        LON0_PLUS_60=`echo $LON0 | awk '{print $1+60}'`
+        grid -x $LON0_MINUS_60 $LON0_PLUS_60 -dx 30 -y 0 0 -dy 30 |\
+            awk '{
+                if ($1>=0) {
+                    printf("%14.6e %14.6e %.0f\\260E\n"),$1,$2,$1
+                } else {
+                    printf("%14.6e %14.6e %.0f\\260W\n"),$1,$2,-$1
+                }
+            }' |\
+            gmt pstext $PROJ $LIMS -F+f5,2,95+jBL -D0.02i/0.02i -t40 $SHFT -K -O >> $PSFILE
+        grid -x $LON0 $LON0 -dx 30 -y -60 60 -dy 30 |\
+            awk '{
+                if ($2>=0) {
+                    printf("%14.6e %14.6e %.0f\\260N\n"),$1,$2,$2
+                } else {
+                    printf("%14.6e %14.6e %.0f\\260S\n"),$1,$2,-$2
+                }
+            }' |\
+            gmt pstext $PROJ $LIMS -F+f5,2,95+jTR -D-0.02i/-0.02i -t40 $SHFT -K -O >> $PSFILE
+    fi
+
     # Station locations
     echo "$SCRIPT [`print_time`]: plotting seismic stations shown in waveforms.png" | tee -a $LOG_FILE
     for TRACE in ../SAC/*.CI.*.sac ../SAC/*.IU.*.sac
@@ -256,8 +281,8 @@ LIMS=-R0/7/0/4
 SHFT="-Xa13.0i -Ya15.5i"
 echo 0 4.0 Event List |\
     gmt pstext $PROJ $LIMS -F+f28,1+jLT $SHFT -N -K -O >> $PSFILE
-echo 0 3.4 "Origin(UTC) Lat     Lon      Dep(km) Mag" |\
-    gmt pstext $PROJ $LIMS -F+f20,8+jLT $SHFT -N -K -O >> $PSFILE
+echo 0 3.4 "Origin(UTC) Latitude Longitude Depth(km) Magnitude" |\
+    gmt pstext $PROJ $LIMS -F+f16,8+jLT $SHFT -N -K -O >> $PSFILE
 NEQ=`wc ../sig_eq.tmp | awk '{print $1}'`
 awk '{
     ot = substr($1,12,8)
@@ -266,15 +291,15 @@ awk '{
     dp = $4
     mg = $5
     if (NR<=8) {
-        printf("%.1f  %.3f  %-11s\ %-8.2f%-8.2f %-8.2f%-7.1f\n"), 0,3.40-NR*0.35,ot,la,lo,dp,mg
+        printf("%.1f  %.3f  %-11s\ %-9.2f%-9.2f %-10.2f%-7.1f\n"), 0,3.40-NR*0.32,ot,la,lo,dp,mg
     }
 }END{
     if(NR>8){
-        printf("%.1f  %.3f  :           :       :        :       :\n"), 0,3.40- 9*0.35
-        printf("%.1f  %.3f  %d total earthquakes plotted\n"), 0,3.40-10*0.35,'$NEQ'
+        printf("%.1f  %.3f  :           :        :         :         :\n"), 0,3.40- 9*0.32
+        printf("%.1f  %.3f  %d total earthquakes plotted\n"), 0,3.40-10*0.32,'$NEQ'
     }
 }' ../sig_eq.tmp |\
-    gmt pstext $PROJ $LIMS -F+f20,8+jLT $SHFT -N -K -O >> $PSFILE
+    gmt pstext $PROJ $LIMS -F+f16,8+jLT $SHFT -N -K -O >> $PSFILE
 # gmt psbasemap $PROJ $LIMS -Bxg0.2 -Byg0.2 $SHFT -K -O --MAP_GRID_PEN=0.25p,105 >> $PSFILE
 # gmt psbasemap $PROJ $LIMS -Bxg1 -Byg1 $SHFT -K -O --MAP_GRID_PEN=1p >> $PSFILE
 
@@ -287,7 +312,7 @@ gmt psxy -T -O >> $PSFILE
 
 
 echo "$SCRIPT [`print_time`]: converting to PNG" | tee -a $LOG_FILE
-gmt psconvert $PSFILE -Tg -A -E300
+gmt psconvert $PSFILE -Tg -A -I+m0.1i -E300
 
 
 
