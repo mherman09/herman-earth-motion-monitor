@@ -214,21 +214,21 @@ do
     QUERY_STRING="${QUERY_STRING}&cha=$CHA"
     QUERY_STRING="${QUERY_STRING}&start=$CALENDAR_TIME_START"
     QUERY_STRING="${QUERY_STRING}&end=$CALENDAR_TIME_END"
-    SACPZ_QUERY_STRING="https://service.iris.edu/irisws/sacpz/1/${QUERY_STRING}"
-    FDSN_QUERY_STRING="https://service.iris.edu/fdsnws/dataselect/1/${QUERY_STRING}&format=sac.zip"
+    SACPZ_QUERY_STRING="https://service.earthscope.org/irisws/sacpz/1/${QUERY_STRING}"
+    FDSN_QUERY_STRING="https://service.earthscope.org/fdsnws/dataselect/1/${QUERY_STRING}&format=miniseed"
     echo $SACPZ_QUERY_STRING >> $LOG_FILE
     echo $FDSN_QUERY_STRING >> $LOG_FILE
 
 
-    # Download from IRIS
-    curl "${SACPZ_QUERY_STRING}" > ./SAC/PZRESP.$NET.$STNM.$LOC.$CHA 2>> $LOG_FILE
-    curl "${FDSN_QUERY_STRING}" > ./SAC/sac.zip 2>> $LOG_FILE 2>> $LOG_FILE
+    # Download from NSF SAGE
+    curl "${SACPZ_QUERY_STRING}" --output ./SAC/PZRESP.$NET.$STNM.$LOC.$CHA 2>> $LOG_FILE
+    curl "${FDSN_QUERY_STRING}" --output ./SAC/file.mseed 2>> $LOG_FILE
 
 
-    # Unzip SAC file
+    # Unzip miniseed file
     cd SAC
-    test -f sac.zip && unzip sac.zip >> $LOG_FILE 2>&1 || echo failed to download/unzip $STNM file
-    test -f sac.zip && rm sac.zip
+    test -f file.mseed  && mseed2sac file.mseed >> $LOG_FILE 2>&1 || echo failed to download/unzip $STNM file
+    test -f file.mseed && rm file.mseed
     cd ..
     echo >> $LOG_FILE
 
