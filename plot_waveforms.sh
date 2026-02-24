@@ -247,24 +247,6 @@ do
         }
     }' $DIR/$ASCII_FILE |\
         gmt psxy $PROJ $LIMS -W0.5p,65 -K -O --PS_LINE_JOIN=round >> $PSFILE
-    STOP=$(echo $TRACE | grep PMG)
-    if [ "$STOP" != "" ]
-    then
-        awk 'BEGIN{dt='$DT'}{
-            if (NR==1) {
-                delta = $1
-            } else if (NR>30) {
-                for(i=1;i<=NF;i++){
-                    t = ((NR-31)*5+i)*delta + dt
-                    v = $i
-                    # printf("%12.3f%20.6e\n"), t,v
-                    print t,v
-                }
-            }
-        }' $DIR/$ASCII_FILE > j
-        # exit
-    fi
-
 
     # Plot station name
     KSTNM=`saclhdr -KSTNM $TRACE`
@@ -272,7 +254,7 @@ do
     echo "$DESCRIPTION ($KSTNM)" | gmt pstext $PROJ $LIMS -F+f12,3+cTR -D-0.05i/0 -K -O >> $PSFILE
 
 
-    # Plot frame (usually leave uncommented)
+    # Plot frame (usually leave commented)
     # gmt psbasemap $PROJ $LIMS -Bxf -Byf -K -O >> $PSFILE
 
 
