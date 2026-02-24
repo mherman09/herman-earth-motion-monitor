@@ -227,7 +227,25 @@ do
 
     # Unzip miniseed file
     cd SAC
-    test -f file.mseed  && mseed2sac file.mseed >> $LOG_FILE 2>&1 || echo failed to download/unzip $STNM file
+    test -f file.mseed && mseed2sac file.mseed >> $LOG_FILE 2>&1 || { echo failed to download/unzip $STNM file | tee -a $LOG_FILE ; cd .. ; continue ; }
+
+    # Set STLO/STLA if they are not in the SAC header already
+    STLO=`saclhdr -STLO *${STNM}*.SAC`
+    if [ "$STLO" == "-12345" ]
+    then
+        echo "$SCRIPT [`print_time`]: station $STNM coordinates not in SAC header...extracting from PZRESP file" | tee -a $LOG_FILE
+        STLO=$(grep "LONGITUDE" ../SAC/PZRESP*${STNM}* | sed -e "s/.*://" | awk '{print $1}')
+        STLA=$(grep "LATITUDE" ../SAC/PZRESP*${STNM}* | sed -e "s/.*://" | awk '{print $1}')
+        sac << --------EOF
+        r *${STNM}*SAC
+        ch STLO $STLO
+        ch STLA $STLA
+        wh
+        q
+--------EOF
+    fi
+
+    # Clean up SAC/ directory and return to HEMM directory
     test -f file.mseed && rm file.mseed
     cd ..
     echo >> $LOG_FILE
