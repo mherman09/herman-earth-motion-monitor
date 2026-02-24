@@ -1,5 +1,9 @@
-all: download process plot_waveforms plot_map
+all: check download process plot_waveforms plot_map
 
+
+.PHONY: check
+check:
+	./run_checks.sh
 
 .PHONY: download
 download: LOGS/download_waveforms.sh.log
