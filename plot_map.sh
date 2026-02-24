@@ -218,6 +218,12 @@ do
         KSTNM=`saclhdr -KSTNM $TRACE`
         STLO=`saclhdr -STLO $TRACE`
         STLA=`saclhdr -STLA $TRACE`
+        if [ "$STLO" == "-12345" ]
+        then
+            echo "$SCRIPT [`print_time`]: station $KSTNM coordinates not in file header...extracting from PZRESP file" | tee -a $LOG_FILE
+            STLO=$(grep "LONGITUDE" ../SAC/PZRESP*${KSTNM}* | sed -e "s/.*://" | awk '{print $1}')
+            STLA=$(grep "LATITUDE" ../SAC/PZRESP*${KSTNM}* | sed -e "s/.*://" | awk '{print $1}')
+        fi
         DIST=`lola2distaz -c $LON0 $LAT0 $STLO $STLA | awk '{print $1/111.19}'`
         PLOT=`echo $DIST | awk '{if($1<=90){print "Y"}else{print "N"}}'`
         if [ $PLOT == "Y" ]
