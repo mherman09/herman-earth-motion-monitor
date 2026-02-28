@@ -78,7 +78,8 @@ CALENDAR_TIME_START=`grep "^CALENDAR_TIME_START=" param.dat |\
     awk -F"#" '{print $1}' |\
     sed -e "/^$/d" |\
     awk -F"=" '{print $2}' |\
-    sed -e "/^$/d"`
+    sed -e "/^$/d" |\
+    awk '{print $1}'`
 
 
 
