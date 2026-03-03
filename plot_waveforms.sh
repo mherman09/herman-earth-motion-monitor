@@ -78,6 +78,12 @@ SCREEN_Y=$(echo $SCREEN_DIMENSIONS | sed -e "s/$SCREEN_UNITS//g" | awk '{print $
 echo SCREEN_UNITS=$SCREEN_UNITS
 echo SCREEN_X=$SCREEN_X
 echo SCREEN_Y=$SCREEN_Y
+if [ "$SCREEN_UNITS" == "" ]
+then
+    SCREEN_UNITS="mm"
+    SCREEN_X=406.4
+    SCREEN_Y=228.6
+fi
 
 
 
