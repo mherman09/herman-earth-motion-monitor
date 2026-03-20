@@ -169,7 +169,8 @@ echo "$SCRIPT [`print_time`]: PROJ=$PROJ" | tee -a $LOG_FILE
 
 # Initialize figure
 echo "$SCRIPT [`print_time`]: initializing figure" | tee -a $LOG_FILE
-SHFT_Y=$(echo $TOTAL_HGT $X_AXIS_HGT | awk '{print $1-$2}')
+
+SHFT_Y=$(echo $TOTAL_HGT $TRACE_HGT | awk '{print $1-$2-$3}')
 gmt psxy -T -K -X${WHITESPACE_X}i -Y${SHFT_Y}i -P > $PSFILE
 
 
@@ -198,8 +199,10 @@ rm j
 
 
 
-# Plot all waveforms, starting with California stations
-for TRACE in SAC/*.CI.*.sac SAC/*.IU.*.sac
+# Plot all waveforms, starting with CSUB station
+STATION_LIST_1=$(ls SAC/*.sac | grep "BAK." || echo)
+STATION_LIST_2=$(ls SAC/*.sac | grep -v "BAK." || echo)
+for TRACE in $STATION_LIST_1 $STATION_LIST_2
 do
 
     echo "$SCRIPT [`print_time`]: plotting trace $TRACE" | tee -a $LOG_FILE
