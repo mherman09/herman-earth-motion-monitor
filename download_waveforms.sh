@@ -19,17 +19,20 @@ SCRIPT=`basename $0`
 
 
 
-# Date/time function
+# Date/time print function
 function print_time () {
     date "+%H:%M:%S"
 }
 
 
 
-# Log file
+# Set log file name
 PWD=`pwd`
 test -d LOGS || mkdir LOGS
 LOG_FILE=${PWD}/LOGS/$SCRIPT.log
+
+
+# Initialize log file
 echo "$SCRIPT [`print_time`]: starting" | tee $LOG_FILE
 echo "$SCRIPT [`print_time`]: creating log file LOGS/$SCRIPT.log" | tee -a $LOG_FILE
 
@@ -68,6 +71,18 @@ echo "$SCRIPT [`print_time`]: getting waveform timing from param.dat" | tee -a $
 
 # Length of record in seconds specified in param.dat file
 WINDOW_SECONDS=`grep "^WINDOW_SECONDS=" param.dat | tail -1 | awk -F"=" '{print $2}'`
+
+
+# Check that data window is defined
+if [ "$WINDOW_SECONDS" == "" ]
+then
+    echo "$SCRIPT [ERROR]: WINDOW_SECONDS is blank" 1>&2
+    exit 1
+fi
+
+# TODO: CHECK TO MAKE SURE WINDOW IS REASONABLE AMOUNT OF TIME (0-1 DAY?)
+
+# All good, print window and proceed
 echo "$SCRIPT [`print_time`]: getting $WINDOW_SECONDS seconds of data" | tee -a $LOG_FILE
 
 
@@ -193,7 +208,7 @@ echo $STA_LIST | tee -a $LOG_FILE
 
 
 # Download waveforms and station instrument responses into SAC folder
-echo "$SCRIPT [`print_time`]: downloading waveforms from IRIS" | tee -a $LOG_FILE
+echo "$SCRIPT [`print_time`]: downloading waveforms from NSF SAGE" | tee -a $LOG_FILE
 echo "$SCRIPT [`print_time`]: saving query URLs in log file" | tee -a $LOG_FILE
 
 
