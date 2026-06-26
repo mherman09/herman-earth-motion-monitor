@@ -101,20 +101,38 @@ CALENDAR_TIME_START=`grep "^CALENDAR_TIME_START=" param.dat |\
 # End time is either calculated relative to time set in param.dat or the current time
 if [ "$CALENDAR_TIME_START" == "" ]
 then
+
     echo "$SCRIPT [`print_time`]: CALENDAR_TIME_START not specified in param.dat" | tee -a $LOG_FILE
     echo "$SCRIPT [`print_time`]: getting time series up to present" | tee -a $LOG_FILE
     EPOCH_TIME_END=`date "+%s"`
+
 else
+
     echo "$SCRIPT [`print_time`]: getting time series starting at UTC $CALENDAR_TIME_START" | tee -a $LOG_FILE
+
     if [ "$DATE_VERSION" == "bsd-date" ]
     then
+
+        # Check date is valid
+        date -ju -f "%Y-%m-%dT%H:%M:%S" "$CALENDAR_TIME_START" "+%s" 1> /dev/null || { exit 1; }
+
+        # Get end time
         EPOCH_TIME_END=`date -ju -f "%Y-%m-%dT%H:%M:%S" "$CALENDAR_TIME_START" "+%s" | awk '{print $1+'$WINDOW_SECONDS'}'`
+
     elif [ "$DATE_VERSION" == "gnu-date" ]
     then
+
+        # Check date is valid
+        date -u -d "$CALENDAR_TIME_START" "+%s" 1> /dev/null || { exit 1; }
+
+        # Get end time
         EPOCH_TIME_END=`date -u -d "$CALENDAR_TIME_START" "+%s" | awk '{print $1+'$WINDOW_SECONDS'}'`
+
     else
+
         echo "$SCRIPT [ERROR]: could not figure out version of date" 1>&2
         exit 1
+
     fi
 fi
 
@@ -129,7 +147,7 @@ EPOCH_TIME_START=`echo $EPOCH_TIME_END $WINDOW_SECONDS | awk '{print $1-$2}'`
 if [ "$DATE_VERSION" == "bsd-date" ]
 then
     CALENDAR_TIME_END=`date -u -r ${EPOCH_TIME_END} "+%Y-%m-%dT%H:%M:%S"`
-    CALENDAR_TIME_PrepSTART=`date -u -r ${EPOCH_TIME_START} "+%Y-%m-%dT%H:%M:%S"`
+    CALENDAR_TIME_START=`date -u -r ${EPOCH_TIME_START} "+%Y-%m-%dT%H:%M:%S"`
     CALENDAR_TIME_END_LOCAL=`date -r "${EPOCH_TIME_END}" "+%Y-%m-%dT%H:%M:%S"`
     CALENDAR_TIME_START_LOCAL=`date -r "${EPOCH_TIME_START}" "+%Y-%m-%dT%H:%M:%S"`
 elif [ "$DATE_VERSION" == "gnu-date" ]
@@ -243,6 +261,10 @@ do
 
     # Unzip miniseed file
     cd SAC
+    test -f file.mseed && grep "Error" file.mseed && { 
+        echo "$SCRIPT [ERROR]: issue downloading mseed file, see message in $LOG_FILE" | tee -a $LOG_FILE ; 
+        cat file.mseed >> $LOG_FILE ; 
+        exit 1 ; }
     test -f file.mseed && mseed2sac file.mseed >> $LOG_FILE 2>&1 || { echo failed to download/unzip $STNM file | tee -a $LOG_FILE ; cd .. ; continue ; }
 
     # Set STLO/STLA if they are not in the SAC header already
