@@ -388,6 +388,7 @@ then
     awk -F, '{print $1,$2,$3,$4,$5}' query.csv > sig_eq.tmp
     awk '{print $5}' sig_eq.tmp > mag.tmp
     grep -o "\".*\"" query.csv > sig_eq_name.tmp
+    grep -o "\".*\"" query.csv | sed -e "s/\"//g" | awk -F, '{print $NF}' | sed -e "s/ //g" > sig_eq_name.tmp
 
 
 
@@ -443,10 +444,11 @@ then
 
     # Label significant earthquakes
     paste time.tmp mag.tmp sig_eq_name.tmp |\
-        awk '{
+        awk 'BEGIN{}{
             time = $1/60
             mag = $2
-            split($0,name,"\"")
+            name = ""
+            for(i=3;i<=NF;i++){name = sprintf("%s %s",name,$i)}
 
             if ($2>=8) {
                 color = "red@15"
@@ -462,15 +464,15 @@ then
                 color = "lightsteelblue3@40"
             }
 
-            printf("%.3f %.3f 8,0,%s M %.1f, %s\n"),time,1,color,mag,name[2]
+            printf("%.3f %.3f 10,1,%s M %.1f%s\n"),time,1,color,mag,name
 
         }' |\
-        gmt pstext $PROJ $LIMS -F+f+jLM+a30 -D0.02i/0.07i -N -K -O >> $PSFILE
+        gmt pstext $PROJ $LIMS -F+f+jLT+a30 -D0.01i/0.06i -N -K -O >> $PSFILE
 
     # echo No significant earthquakes | gmt pstext $PROJ $LIMS -F+f10,2,red@40+cTL -D0.25i/0.25i -N -K -O >> $PSFILE
 
     # Remove temporary files
-    rm mag.tmp time.tmp sig_eq_name.tmp
+    # rm mag.tmp time.tmp sig_eq_name.tmp
 
 fi
 
@@ -529,7 +531,7 @@ gmt psconvert $PSFILE -Tf
 echo "$SCRIPT [`print_time`]: cleaning up" | tee -a $LOG_FILE
 rm $PSFILE
 rm gmt.history gmt.conf
-rm query.csv
+# rm query.csv
 rm sig_eq.tmp
 
 
