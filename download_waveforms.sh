@@ -197,6 +197,7 @@ echo "$SCRIPT [`print_time`]: cleaning SAC/ directory" | tee -a $LOG_FILE
 test -d SAC || mkdir SAC
 cd SAC
 rm *.SAC
+rm *.mseed
 rm PZRESP.*
 rm *.dat
 rm *.sac
@@ -235,13 +236,15 @@ do
 
     echo "$SCRIPT [`print_time`]: working on $STA_INFO" | tee -a $LOG_FILE
 
+
     # Parse station info
     STNM=`echo $STA_INFO | awk -F"|" '{print $1}'`
     NET=`echo $STA_INFO | awk -F"|" '{print $2}'`
     LOC=`echo $STA_INFO | awk -F"|" '{print $3}'`
     CHA=BHZ
 
-    # Build query
+
+    # Build SAGE query
     QUERY_STRING="query?net=$NET"
     QUERY_STRING="${QUERY_STRING}&sta=$STNM"
     QUERY_STRING="${QUERY_STRING}&loc=$LOC"
@@ -255,17 +258,59 @@ do
 
 
     # Download from NSF SAGE
-    curl "${SACPZ_QUERY_STRING}" --output ./SAC/PZRESP.$NET.$STNM.$LOC.$CHA 2>> $LOG_FILE
-    curl "${FDSN_QUERY_STRING}" --output ./SAC/file.mseed 2>> $LOG_FILE
+    MSEED_FILE=./SAC/$NET.$STNM.$LOC.$CHA.mseed
+    PZRESP_FILE=./SAC/PZRESP.$NET.$STNM.$LOC.$CHA
+    curl "${FDSN_QUERY_STRING}" --output $MSEED_FILE 2>> $LOG_FILE
+    curl "${SACPZ_QUERY_STRING}" --output $PZRESP_FILE 2>> $LOG_FILE
+
+
+    # Error checks on MSEED download
+
+    # Check that MSEED file exists
+    ERROR_MESSAGE=$(test -f $MSEED_FILE || echo DOESNOTEXIST)
+    if [ "$ERROR_MESSAGE" == "DOESNOTEXIST" ]
+    then
+        echo "$SCRIPT [WARNING]: MSEED file $MSEED_FILE was not downloaded" | tee -a $LOG_FILE
+        echo "$SCRIPT [WARNING]: removing $MSEED_FILE and $PZRESP_FILE and continuing" | tee -a $LOG_FILE
+        rm $MSEED_FILE $PZRESP_FILE
+        continue
+    fi
+
+    # Check that MSEED file has size greater than zero
+    ERROR_MESSAGE=$(test -s $MSEED_FILE || echo ZERO)
+    if [ "$ERROR_MESSAGE" == "ZERO" ]
+    then
+        echo "$SCRIPT [WARNING]: downloaded MSEED file $MSEED_FILE has nothing in it" | tee -a $LOG_FILE
+        echo "$SCRIPT [WARNING]: removing $MSEED_FILE and $PZRESP_FILE and continuing" | tee -a $LOG_FILE
+        rm $MSEED_FILE $PZRESP_FILE
+        continue
+    fi
+
+    # Check that MSEED download did not have another error
+    ERROR_MESSAGE=$(test -f $MSEED_FILE && grep "Error" $MSEED_FILE)
+    if [ "$ERROR_MESSAGE" != "" ]
+    then
+        echo "$SCRIPT [WARNING]: error in downloaded MSEED file $MSEED_FILE" | tee -a $LOG_FILE
+        echo "$SCRIPT [WARNING]: see error message in $LOG_FILE" | tee -a $LOG_FILE
+        cat $MSEED_FILE >> $LOG_FILE
+        echo "$SCRIPT [WARNING]: removing $MSEED_FILE and $PZRESP_FILE and continuing" | tee -a $LOG_FILE
+        rm $MSEED_FILE $PZRESP_FILE
+        continue
+    fi
 
 
     # Unzip miniseed file
+    MSEED_FILE=$(basename $MSEED_FILE)
+    PZRESP_FILE=$(basename $PZRESP_FILE)
     cd SAC
-    test -f file.mseed && grep "Error" file.mseed && { 
-        echo "$SCRIPT [ERROR]: issue downloading mseed file, see message in $LOG_FILE" | tee -a $LOG_FILE ; 
-        cat file.mseed >> $LOG_FILE ; 
-        exit 1 ; }
-    test -f file.mseed && mseed2sac file.mseed >> $LOG_FILE 2>&1 || { echo failed to download/unzip $STNM file | tee -a $LOG_FILE ; cd .. ; continue ; }
+    test -f $MSEED_FILE && mseed2sac $MSEED_FILE >> $LOG_FILE 2>&1 || {
+        echo "$SCRIPT [WARNING]: failed to unpack $MSEED_FILE" | tee -a $LOG_FILE ;
+        echo "$SCRIPT [WARNING]: removing $MSEED_FILE and $PZRESP_FILE and continuing" | tee -a $LOG_FILE ;
+        rm $MSEED_FILE $PZRESP_FILE ;
+        cd .. ;
+        continue ;
+    }
+
 
     # Set STLO/STLA if they are not in the SAC header already
     STLO=`saclhdr -STLO *${STNM}*.SAC`
@@ -284,7 +329,6 @@ do
     fi
 
     # Clean up SAC/ directory and return to HEMM directory
-    test -f file.mseed && rm file.mseed
     cd ..
     echo >> $LOG_FILE
 
@@ -293,13 +337,18 @@ done
 
 
 # Save downloaded files to log
+echo >> $LOG_FILE
 if [ -z "$(ls -A SAC/*.SAC 2> /dev/null)" ]
 then
     echo "$SCRIPT [ERROR]: no downloaded seismograms found in SAC/" 1>&2
     exit 1
 fi
-ls ./SAC/PZRESP* >> $LOG_FILE
+echo "$SCRIPT [`print_time`]: SAC files" >> $LOG_FILE
 ls ./SAC/*.SAC >> $LOG_FILE
+echo >> $LOG_FILE
+echo "$SCRIPT [`print_time`]: PZRESP files" >> $LOG_FILE
+ls ./SAC/PZRESP* >> $LOG_FILE
+echo >> $LOG_FILE
 
 
 
