@@ -61,7 +61,7 @@ fi
 
 # Waveform download log file has time series start/end information
 WVFM_LOG_FILE=${PWD}/LOGS/download_waveforms.sh.log
-test -f $WVFM_LOG_FILE || { 
+test -f $WVFM_LOG_FILE || {
     echo "$0 [`print_time`] [ERROR]: could not find waveform log file $WVFM_LOG_FILE with start/end times" 1>&2 ;
     echo "$0 [`print_time`] [ERROR]: could not find waveform log file $WVFM_LOG_FILE with start/end times" >> $LOG_FILE ;
     exit 1;
@@ -196,13 +196,8 @@ gmt set PS_MEDIA ${SCREEN_X}ix${SCREEN_Y}i
 
 # Plot dimensions
 WHITESPACE_X=0.25
-if [ $NSIG -ge 1 ]
-then
-    WHITESPACE_Y_TOP=0.85
-else
-    WHITESPACE_Y_TOP=0.25
-fi
-WHITESPACE_Y_BOT=0.25
+WHITESPACE_Y_TOP=0.65
+WHITESPACE_Y_BOT=0.05
 X_AXIS_HGT=0.7
 TOTAL_WID=$(echo $SCREEN_X | awk '{print $1-'$WHITESPACE_X'*2}')                        # Total plot width (in)
 TOTAL_HGT=$(echo $SCREEN_Y | awk '{print $1-'$WHITESPACE_Y_TOP'-'$WHITESPACE_Y_BOT'}')  # Total plot height (in)
@@ -260,7 +255,7 @@ echo "$SCRIPT [`print_time`]: GMT projection option for each trace: \"$PROJ\"" >
 # Initialize figure
 echo "$SCRIPT [`print_time`]: initializing figure $PSFILE" | tee -a $LOG_FILE
 
-SHFT_Y=$(echo $TOTAL_HGT $TRACE_HGT | awk '{print $1-$2-$3}')
+SHFT_Y=$(echo $TOTAL_HGT $TRACE_HGT $WHITESPACE_Y_BOT | awk '{print $1-$2+$3}')
 gmt psxy -T -K -X${WHITESPACE_X}i -Y${SHFT_Y}i -P > $PSFILE
 
 
@@ -330,7 +325,7 @@ do
     echo "$DESCRIPTION ($KSTNM)" | gmt pstext $PROJ $LIMS -F+f12,3+cTR -D-0.05i/0 -K -O >> $PSFILE
 
 
-    # Plot frame (usually leave commented)
+    # # Plot frame (usually leave commented)
     # gmt psbasemap $PROJ $LIMS -Bxf -Byf -K -O >> $PSFILE
 
 
@@ -510,7 +505,7 @@ echo $CALENDAR_TIME_END_LOCAL $TIME_ZONE_LOCAL |\
 # # Full frame around image (usually leave commented out)
 # echo "$SCRIPT [`print_time`]: plotting full frame around image" >> $LOG_FILE
 # gmt psxy -T -Y-${X_AXIS_HGT}i -K -O >> $PSFILE
-# gmt psbasemap -JX${TOTAL_WID}i/${TOTAL_HGT}i $LIMS -Bf -K -O >> $PSFILE
+# gmt psbasemap -JX${TOTAL_WID}i/${TOTAL_HGT}i $LIMS -Bf --MAP_FRAME_PEN=2p,red -K -O >> $PSFILE
 
 
 
