@@ -74,16 +74,17 @@ CALENDAR_TIME_END_LOCAL=`grep "CALENDAR_TIME_END_LOCAL=" $WVFM_LOG_FILE | awk -F
 TIME_ZONE_LOCAL=`grep "TIME_ZONE_LOCAL=" $WVFM_LOG_FILE | awk -F= '{print $2}'`
 
 EPOCH_TIME_END=$(grep "EPOCH_TIME_END=" $WVFM_LOG_FILE | awk -F"=" '{print $2}')
-EPOCH_TIME_EQ_DOWNLOAD_START=$(echo $EPOCH_TIME_END | awk '{print $1-31536000}')
+NDAYS=30
+EPOCH_TIME_EQ_ANIMATION_START=$(echo $EPOCH_TIME_END | awk '{print $1-'$NDAYS'*24*60*60}')
 
 if [ "$DATE_VERSION" == "bsd-date" ]
 then
-    CALENDAR_TIME_EQ_DOWNLOAD_START=`date -u -r ${EPOCH_TIME_EQ_DOWNLOAD_START} "+%Y-%m-%dT%H:%M:%S"`
-    CALENDAR_TIME_EQ_DOWNLOAD_START_LOCAL=`date -r "${EPOCH_TIME_EQ_DOWNLOAD_START}" "+%Y-%m-%dT%H:%M:%S"`
+    CALENDAR_TIME_EQ_ANIMATION_START=`date -u -r ${EPOCH_TIME_EQ_ANIMATION_START} "+%Y-%m-%dT%H:%M:%S"`
+    CALENDAR_TIME_EQ_ANIMATION_START_LOCAL=`date -r "${EPOCH_TIME_EQ_ANIMATION_START}" "+%Y-%m-%dT%H:%M:%S"`
 elif [ "$DATE_VERSION" == "gnu-date" ]
 then
-    CALENDAR_TIME_EQ_DOWNLOAD_START=`date -u -d "@${EPOCH_TIME_EQ_DOWNLOAD_START}" "+%Y-%m-%dT%H:%M:%S"`
-    CALENDAR_TIME_EQ_DOWNLOAD_START_LOCAL=`date -d "@${EPOCH_TIME_EQ_DOWNLOAD_START}" "+%Y-%m-%dT%H:%M:%S"`
+    CALENDAR_TIME_EQ_ANIMATION_START=`date -u -d "@${EPOCH_TIME_EQ_ANIMATION_START}" "+%Y-%m-%dT%H:%M:%S"`
+    CALENDAR_TIME_EQ_ANIMATION_START_LOCAL=`date -d "@${EPOCH_TIME_EQ_ANIMATION_START}" "+%Y-%m-%dT%H:%M:%S"`
 else
     echo "$SCRIPT [ERROR]: could not figure out version of date" 1>&2
     exit 1
@@ -94,12 +95,34 @@ CALENDAR_TIME_START=$CALENDAR_TIME_START
 CALENDAR_TIME_END=$CALENDAR_TIME_END
 CALENDAR_TIME_START_LOCAL=$CALENDAR_TIME_START_LOCAL
 CALENDAR_TIME_END_LOCAL=$CALENDAR_TIME_END_LOCAL
+CALENDAR_TIME_EQ_ANIMATION_START=$CALENDAR_TIME_EQ_ANIMATION_START
+CALENDAR_TIME_EQ_ANIMATION_START_LOCAL=$CALENDAR_TIME_EQ_ANIMATION_START_LOCAL
 TIME_ZONE_LOCAL=$TIME_ZONE_LOCAL
 EOF
 cat j | tee -a $LOG_FILE
 rm j
 
 
+
+
+
+#####
+#   WORK IN ANIMATION/ DIRECTORY
+#####
+
+# Do all the work in the ANIMATION directory
+echo "$SCRIPT [`print_time`]: working in ANIMATION directory" | tee -a $LOG_FILE
+test -d ANIMATION || mkdir ANIMATION
+cd ANIMATION
+
+
+
+
+
+
+#####
+#   DOWNLOAD EARTHQUAKES
+#####
 
 # Download significant earthquakes
 echo "$SCRIPT [`print_time`]: downloading significant earthquakes" | tee -a $LOG_FILE
@@ -109,7 +132,7 @@ then
     MINSIG=100
 fi
 echo "$SCRIPT [`print_time`]: minimum significance = $MINSIG" | tee -a $LOG_FILE
-COMCAT_URL="https://earthquake.usgs.gov/fdsnws/event/1/query?starttime=${CALENDAR_TIME_EQ_DOWNLOAD_START}&endtime=${CALENDAR_TIME_END}&minsig=${MINSIG}&format=csv"
+COMCAT_URL="https://earthquake.usgs.gov/fdsnws/event/1/query?starttime=${CALENDAR_TIME_EQ_ANIMATION_START}&endtime=${CALENDAR_TIME_END}&minsig=${MINSIG}&format=csv"
 echo "$COMCAT_URL" >> $LOG_FILE
 curl "$COMCAT_URL" > query.csv 2>> $LOG_FILE
 COMCAT_URL="https://earthquake.usgs.gov/fdsnws/event/1/query?starttime=${CALENDAR_TIME_START}&endtime=${CALENDAR_TIME_END}&minsig=${MINSIG}&format=csv"
@@ -158,14 +181,10 @@ fi
 
 
 
+
 #####
 #   PLOT GLOBE FRAMES
 #####
-
-# Do all the work in the ANIMATION directory
-echo "$SCRIPT [`print_time`]: working in ANIMATION directory" | tee -a $LOG_FILE
-test -d ANIMATION || mkdir ANIMATION
-cd ANIMATION
 
 
 
@@ -187,8 +206,8 @@ ls $STA_FILE_DIR/*.IU.*.sac >> ${STA_FILE_DIR}/sta_file_list.tmp
 
 
 # Save earthquake file absolute path
-EQ_FILE=$(pwd)/../query.tmp
-EQ_FILE_2=$(pwd)/../query_2.tmp
+EQ_FILE=$(pwd)/query.tmp
+EQ_FILE_2=$(pwd)/query_2.tmp
 
 
 
@@ -220,36 +239,80 @@ gmt begin
     # Significant earthquakes
     if [ "$USGS_EQ_QUERY_ERROR" == "N" ]
     then
+
+        # Depth color palettes
+        /home/mherman2/Research/Hdef/bin/colortool -hue 100,-30 -chroma 20,20 -lightness 95,75 -D -gmt -T0/100/10 > depth1.cpt
         gmt makecpt -T0/100/10 -Cplasma -I -D
+
+        # Last 30 days of earthquakes
         awk '{print '\$LON0',0,\$3,\$2}' ${EQ_FILE} |\\
             /home/mherman2/Research/Hdef/bin/lola2distaz -f stdin |\\
             awk '{print \$1}' |\\
             paste - ${EQ_FILE} |\\
             awk '{
-                if (\$1/111.19<=93 && \$6>=5.0) {
-                    if (\$6<7.0) {
-                        p=1
-                    } else if (\$6<8.0) {
-                        p=2
+                mag = \$6
+                if (\$1/111.19<=93 && mag>=5.0) {
+                    if (mag < 6.0) {
+                        pen = (mag - 4.0)*0.5
+                    } else if (mag < 9.0) {
+                        pen = mag - 5.0
                     } else {
-                        p=3
+                        pen = 3.0
                     }
                     if (\$1/111.19>90) {
                         t = (\$1/111.19-90)*33
                     } else {
                         t = 0
                     }
-                    print "> -W"p"p"
-                    print \$4,\$3,\$5,\$6*\$6*\$6*$EQ_SCALE,t
+                    print "> -W" pen "p"
+                    print \$4,\$3,\$5,mag^3*$EQ_SCALE,t
                 }
             }' |\\
-            gmt plot -Sci -W1p -C -N -t
+            gmt plot -Sci -W1p,155 -Cdepth1.cpt -N -t
+
+        # Earthquakes on seismogram plot
         awk '{print '\$LON0',0,\$3,\$2}' ${EQ_FILE_2} |\\
             /home/mherman2/Research/Hdef/bin/lola2distaz -f stdin |\\
             awk '{print \$1}' |\\
-            paste - ${EQ_FILE} |\\
-            awk '{if (\$1/111.19<=93 && \$6>=5.0) {if(\$6<7.0){p=1}else if(\$6<8.0){p=2}else{p=3};print "> -W"p"p,green"; print \$4,\$3,\$5,\$6*\$6*\$6*$EQ_SCALE}}' |\\
-            gmt plot -Sci -W1p -C -N
+            paste - ${EQ_FILE_2} |\\
+            awk '{
+                mag = \$6
+                if (\$1/111.19<=93 && \$6>=5.0) {
+                    if (mag < 6.0) {
+                        pen = (mag - 4.0)*0.5
+                    } else if (mag < 9.0) {
+                        pen = mag - 5.0
+                    } else {
+                        pen = 3.0
+                    }
+                    if (\$1/111.19>90) {
+                        t = (\$1/111.19-90)*33
+                    } else {
+                        t = 0
+                    }
+                    print "> -W" pen "p"
+                    print \$4,\$3,\$5,mag^3*$EQ_SCALE,t
+                }
+            }' |\\
+            gmt plot -Sci -W1p -C -N -t
+
+        # Earthquakes on seismogram plot magnitude
+        awk '{print '\$LON0',0,\$3,\$2}' ${EQ_FILE_2} |\\
+            /home/mherman2/Research/Hdef/bin/lola2distaz -f stdin |\\
+            awk '{print \$1}' |\\
+            paste - ${EQ_FILE_2} |\\
+            awk '{
+                mag = \$6
+                if (\$1/111.19<=93 && mag>=5.0) {
+                    if (\$1/111.19>90) {
+                        t = (\$1/111.19-90)*33
+                    } else {
+                        t = 0
+                    }
+                    print \$4,\$3,t,mag
+                }
+            }' |\\
+            gmt text -F+f10,1+jCM -N -t
     fi
 
 
@@ -279,25 +342,39 @@ gmt begin
     # Magnitude legend
     X0=14.0
     Y0=2.5
-    echo \$X0 8.00 Magnitude | gmt pstext -JX1c -R0/1/0/1 -F+f20,2+jCT -N -D0/\${Y0}
+    echo \$X0 8.00 Earthquake | gmt pstext -JX1c -R0/1/0/1 -F+f16,2+jCB -N -D0/\${Y0}
+    echo \$X0 7.30 Magnitude | gmt pstext -JX1c -R0/1/0/1 -F+f16,2+jCB -N -D0/\${Y0}
     echo 6.10 9.0 > mag_legend.tmp
     echo 4.30 8.0 >> mag_legend.tmp
     echo 3.00 7.0 >> mag_legend.tmp
     echo 2.10 6.0 >> mag_legend.tmp
-    echo 1.50 5.0 >> mag_legend.tmp
-    awk '{print '\$X0', \$1+'\$Y0', \$2^3*$EQ_SCALE}' mag_legend.tmp | gmt plot -W1p -G235 -Sci -N
+    echo 1.45 5.0 >> mag_legend.tmp
+    awk '{
+        mag = \$2
+        if (mag < 6.0) {
+            pen = (mag - 4.0)*0.5
+        } else if (mag < 9.0) {
+            pen = mag - 5.0
+        } else {
+            pen = 3.0
+        }
+        print "> -W" pen "p"
+        print '\$X0', \$1+'\$Y0', \$2^3*$EQ_SCALE
+    }' mag_legend.tmp |\\
+        gmt plot -W1p -G235 -Sci -N
     awk '{print '\$X0'+\$2^3*$EQ_SCALE/2*2.54, \$1+'\$Y0', 9+(\$2-4)*2.0, \$2}' mag_legend.tmp |\\
         gmt text -F+f+jLM -D0.05i/0 -N
 
 
     # Depth Legend
-    echo -2.90 10.5 Depth \(km\) |\\
-        gmt text -F+f20,2+jCT -N
-    gmt colorbar -Dx-3.0/2.5+w-6.8/0.60+ef+ma -C --FONT_ANNOT=14
+    echo -2.90 10.2 Earthquake | gmt text -F+f16,2+jCB -N
+    echo -2.90  9.5 Depth \(km\) | gmt text -F+f16,2+jCB -N
+    gmt colorbar -Dx-2.5/1.5+w-7.6/0.60+ef+ma -C --FONT_ANNOT=14
+    gmt colorbar -Dx-4.0/1.5+w-7.6/0.60+ef+ma -Bg10 -Cdepth1.cpt --MAP_FRAME_PEN=1p,105 --MAP_GRID_PEN=0.5p,105
 
 
     # Seismometer legend
-    echo \$X0 2.60 Seismometers | gmt pstext -JX1c -R0/1/0/1 -F+f20,2+jCT -N
+    echo \$X0 2.10 Seismometers | gmt pstext -JX1c -R0/1/0/1 -F+f16,2+jCB -N
     echo \$X0 1.50 Station | gmt text -F+f7,1+jCB -D0/0.07i -N
     echo \$X0 1.50 | gmt plot -Si0.1i -W1p -Gred -N
 
@@ -313,12 +390,14 @@ echo "$SCRIPT [`print_time`]: running gmt movie to generate animation" | tee -a 
 
 LON_START=0
 LON_END=360
+# LON_END=10
 DLON=0.5
-DLON=90
+# DLON=1
 LON_END=$(echo $LON_END $DLON | awk '{print $1-$2*2}')
 
-FPS=24
-FPS=12
+FPS=36
+# FPS=12
+# FPS=6
 
 CANVAS_WID=24c
 CANVAS_HGT=12.5c
@@ -336,21 +415,25 @@ gmt movie main.bash \
     -C${CANVAS_WID}x${CANVAS_HGT}x${CANVAS_DPU} \
     -T${LON_START}/${LON_END}/${DLON} \
     -M${MASTER_FRAME},png \
-    -Fgif+l \
     -Zs \
+    -Fgif+l \
     -Gwhite \
     -D${FPS} \
-    -Ls"Earthquakes Around the World (Past Year)"+jTC+f24,0 \
-    -Ls"$CALENDAR_TIME_EQ_DOWNLOAD_START @%2%@:8:to@::@%% $CALENDAR_TIME_END \(UTC\)"+jBL+f9,2 \
-    -Ls"$CALENDAR_TIME_EQ_DOWNLOAD_START_LOCAL @%2%@:8:to@::@%% $CALENDAR_TIME_END_LOCAL \($TIME_ZONE_LOCAL\)"+jBR+f9,2 \
+    -Ls"M>5 Earthquakes Around the World (Last 30 Days)"+jTC+f24,0 \
+    -Ls"Faded events occurred in the past 30 days"+jBL+f9,2,105+o0.07i/0.22i \
+    -Ls"Bold events occurred in the past hour"+jBL+f9,3+o0.07i/0.07i \
+    -Ls"$CALENDAR_TIME_EQ_ANIMATION_START_LOCAL @%2%@:8:to@::@%% $CALENDAR_TIME_END_LOCAL \($TIME_ZONE_LOCAL\)"+jBR+f9,2 \
     -Vi
 
 
 
 echo "$SCRIPT [`print_time`]: cleaning up" | tee -a $LOG_FILE
 
+rm query*csv
+rm query*tmp
+
 echo "$SCRIPT [`print_time`]: finished" | tee -a $LOG_FILE
 
 cd ..
-# pkill vlc
-# vlc ANIMATION/${MOVIE_NAME}.mp4 &
+
+cp ./ANIMATION/globe.gif ./globe.gif

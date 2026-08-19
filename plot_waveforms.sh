@@ -526,7 +526,7 @@ gmt psconvert $PSFILE -Tf
 echo "$SCRIPT [`print_time`]: cleaning up" | tee -a $LOG_FILE
 rm $PSFILE
 rm gmt.history gmt.conf
-# rm query.csv
+rm query.csv
 rm sig_eq.tmp
 
 
