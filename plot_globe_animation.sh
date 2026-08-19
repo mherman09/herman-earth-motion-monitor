@@ -304,15 +304,16 @@ gmt begin
             awk '{
                 mag = \$6
                 if (\$1/111.19<=93 && mag>=5.0) {
+                    font_size = mag + 2
                     if (\$1/111.19>90) {
                         t = (\$1/111.19-90)*33
                     } else {
                         t = 0
                     }
-                    print \$4,\$3,t,mag
+                    print \$4,\$3, t, font_size",1" , mag
                 }
             }' |\\
-            gmt text -F+f10,1+jCM -N -t
+            gmt text -F+f+jCM -N -t
     fi
 
 
